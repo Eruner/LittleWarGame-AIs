@@ -1,0 +1,48 @@
+/* 
+	Building API of LWG AI units [EXTRA]
+
+	Here is a list of exctracted atributes and functions
+	accessible through javascript when building a custom 
+	LWG AI bot.
+	
+	These extra info information might be usefull when making
+	a more advanced algorithms and tactics.
+	
+	If you decide to use this API, you need to do a manual 
+	work of figuring out how particular function should 
+	be used, because this is not a parf of official LWG API.
+
+	NOTE: find official LWG AI API here:
+		http://littlewargame.com/blog/tag/ai/
+*/
+
+building = {
+	unit,equals,getValue,getFieldValue,getCurrentHP,getX,getY,
+	getTypeName,getOwnerNumber,getTeamNumber,getRemainingBuildTime,
+	getUnitTypeNameInProductionQueAt,isUnderConstruction,isNeutral,
+	getCurrentOrderName
+}
+
+building.unit = {
+	waypoint,x,y,type,owner,order,id,gold,isUnderConstruction,
+	dontRefreshNBs,buildTicksLeft,seenBy,seenByAsBuildingType,vision,
+	state,hasBeenCancelled,lastRepairedTick,timesRepairedThisTick,
+	queue,pos,autocast,tickOfCreation,lastWorkerCount,pseudoBuildings,
+	abilityLevels,lastTickAbilityUsed,targetsQueue,workingWorkers,
+	modifiers,modifiersSelf,modifierMods,disabledCommands,hp,mana,
+	isActive,isAlive,targetUnit,hitCycle,tickOfDeath,kills,level,
+	nextTickToCheckForNextEnemyUnit,hadTargetLastRound,isDetectedUntil,
+	provisionalTargetUnit,customAttackEffect,countLearnedAbilities,
+	queueFinish,queueStarted,refreshState,isReachableFromPos,
+	getRepaired,issueOrder,distanceTo,distanceToPos,update,learn,
+	canBeRepaired,syncWaypoint,initAutocast,setAndSyncAutocast,
+	setValAndSync,setArrayValAndSync,setPosAndSync,setUnitAndSync,
+	setOrderAndSync,getValue,includesField,canSeePos,die,hit,getLevel,
+	getAttackPrio,remove,canLoad,performHit,performRangedHit,
+	hasInQueue,canAttackUnit,getCmd2ConstructBuilding,applyModifiers,
+	autoAttackAIEnabled,checkUpgrades,killModifier,initHPAndMana,
+	orderMake,aoeHitsUnit,hitscan,canPerformDance,handleAutocast,
+	universalOrder,resetMakeBuilding,makeBuildingUpdate,queueUpdate,
+	waypointSpawn,canIssueOrder,updateModifiers,mapObjectUpdate,
+	switchBlocking,cancelQueueElement,queueElementFinishes
+}

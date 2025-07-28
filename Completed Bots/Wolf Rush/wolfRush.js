@@ -265,7 +265,7 @@ try{
 				}
 			}
 			function attack(){
-				var fightingUnits = scope.getUnits({notOfType: "Worker"});
+				var fightingUnits = scope.getUnits({notOfType: "Worker", player: me});
 				if(!fightingUnits.length){return;}
 				scope.order("AMove", fightingUnits, DATA.ENEMY_LOCATION);
 			}

@@ -11,12 +11,14 @@ try{
 	var me = scope.getMyPlayerNumber();
 	var team = (me % 2 == 1) ? 'top' : 'bottom';
 	var teamNumber = scope.getMyTeamNumber();
+	var teamName = 'TEAM-' + teamNumber;
 	if(!scope['BOT-' + me]){
 		scope['BOT-' + me] = (function(){
 			var DATA;
 			function init() {
 				try{
 					loadDefaultVariables();
+					loadTeamMemory();
 					loadBuildings();
 					loadTechnologies();
 					loadPositions();
@@ -41,8 +43,25 @@ try{
 				DATA.LUCKY_NUMBER = Math.floor(Math.random() * 3) + 10;
 				DATA.JUNGLE_TARGET = 'WOLF';
 				DATA.LEVEL = 0;
-				if(!game['TEAM-' + teamNumber] && me > 4){
-					game['TEAM-' + teamNumber] = { target : "jungle"+me};
+				DATA.GOAL_DURATION = 300;
+				DATA.GOAL_START = 0;// - DATA.GOAL_DURATION;
+				DATA.HERO_NAMES = ["Arlin", "Zalarc", "Qatar", "Viola", "Poly", "Karnon"];
+			}
+			function loadTeamMemory(){
+				if(!game[teamName]){
+					game[teamName] = {goal:'JUNGLE'};
+				}
+				if(!game[teamName].leader || game[teamName].leader > me){
+					game[teamName].leader = me;
+				}
+				for(var i = 0, max = game.players.length; i < max; i++){
+					var onePlayer = game.players[i];
+					var playerName = onePlayer.name;
+					var hisTeam = onePlayer.team.number;
+					if(hisTeam == teamNumber && playerName.indexOf('Computer') < 0){
+						game[teamName].leader = onePlayer.number;
+						game[teamName].goal = 'PROTECT';
+					}
 				}
 			}
 			function loadBuildings(){
@@ -126,7 +145,11 @@ try{
 				DATA.CENTER = scope.getBuildings({type:"Heroic Center", player: me, onlyFinshed: true})[0];
 				DATA.IS_BARRIER = findBarriers();
 				DATA.NOW = whatTimeItIs();
+				DATA.AM_I_TEAM_LEADER = amILeader();
 				DATA.HERO = findHero();
+				DATA.ALLY_HEROES = findAllies();
+				DATA.PLAYER = findLeaderHero();
+				DATA.ENEMY_HEROES = findEnemyHeroes();
 				DATA.JUNGLE_MOBS = findJungleMobs();
 				DATA.JUNGLE_POSITION = DATA.MAP[DATA.JUNGLE_TARGET];
 				DATA.MOB_NEARBY = isMobNearby();
@@ -134,10 +157,11 @@ try{
 				DATA.ALLY_CLOSE_TO_POSITION = isAllyPositionClose();
 				DATA.JUNGLE_TARGET = nextJungleTarget();
 				DATA.JUNGLE_IS_EMPTY = isJungleEmpty();
+				DATA.JUNGLE_IS_FULL = isJungleFull();
 				DATA.ENEMY_CLOSE_TO_ME = isEnemyCloseToMe();
 				DATA.LEVEL_UP = false;
 				DATA.LEVEL = checkLevel();
-				checkTeamGoal();
+				DATA.GOAL = checkTeamGoal();
 			}
 			function findBarriers(){
 				var barriers = scope.getBuildings({type: "Barrier"});
@@ -158,6 +182,46 @@ try{
 				if(fightingUnits.length){
 					return fightingUnits[0];
 				}
+			}
+			function findAllies(){
+				var allyHeroes = [];
+				DATA.HERO_NAMES = ["Arlin", "Zalarc", "Qatar", "Viola", "Poly", "Karnon"];
+				allyHeroes = allyHeroes.concat(scope.getUnits({type: "Arlin", team :teamNumber}));
+				allyHeroes = allyHeroes.concat(scope.getUnits({type: "Zalarc", team :teamNumber}));
+				allyHeroes = allyHeroes.concat(scope.getUnits({type: "Qatar", team :teamNumber}));
+				allyHeroes = allyHeroes.concat(scope.getUnits({type: "Viola", team :teamNumber}));
+				allyHeroes = allyHeroes.concat(scope.getUnits({type: "Poly", team :teamNumber}));
+				allyHeroes = allyHeroes.concat(scope.getUnits({type: "Karnon", team :teamNumber}));
+				allyHeroes = allyHeroes.filter(function(oneUnit){
+					return oneUnit.unit.owner.number != me;
+				});
+				return allyHeroes;
+			}
+			function findLeaderHero(){
+				if(!DATA.ALLY_HEROES || !DATA.ALLY_HEROES.length){
+					return;
+				}
+				if(DATA.AM_I_TEAM_LEADER){
+					return;
+				}
+				var leaderHeroes = DATA.ALLY_HEROES.filter(function(oneAllyHero){
+					return oneAllyHero.unit.owner.number == game[teamName].leader;
+				});
+				if(!leaderHeroes || !leaderHeroes.length){
+					return;
+				}
+				return leaderHeroes[0];
+			}
+			function findEnemyHeroes(){
+				var enemyHeroes = [];
+				var enemyTeamNumber = (teamNumber % 2) + 1;
+				enemyHeroes = enemyHeroes.concat(scope.getUnits({type: "Arlin", team :enemyTeamNumber}));
+				enemyHeroes = enemyHeroes.concat(scope.getUnits({type: "Zalarc", team :enemyTeamNumber}));
+				enemyHeroes = enemyHeroes.concat(scope.getUnits({type: "Qatar", team :enemyTeamNumber}));
+				enemyHeroes = enemyHeroes.concat(scope.getUnits({type: "Viola", team :enemyTeamNumber}));
+				enemyHeroes = enemyHeroes.concat(scope.getUnits({type: "Poly", team :enemyTeamNumber}));
+				enemyHeroes = enemyHeroes.concat(scope.getUnits({type: "Karnon", team :enemyTeamNumber}));
+				return enemyHeroes;
 			}
 			function findJungleMobs(){
 				var jungle = {};
@@ -192,10 +256,20 @@ try{
 				return DATA.JUNGLE_TARGET;
 			}
 			function isJungleEmpty(){
-				var mobOrder = ['WOLF', 'SOLDIER','ARCHER','MAGE','PRIEST'];//,'BOSS'
+				var mobOrder = ['WOLF', 'SOLDIER','ARCHER','MAGE','PRIEST'];
 				for(var i = 0; i < mobOrder.length; i++){
-					var currentMob = mobOrder[i];
-					if(currentMob.lastTime + currentMob.cooldown < DATA.TIME_NOW){
+					var currentMob = DATA.SPAWN[mobOrder[i]];
+					if((currentMob.lastTime + currentMob.cooldown) < DATA.TIME_NOW){
+						return false;
+					}
+				}
+				return true;
+			}
+			function isJungleFull() {
+				var mobOrder = ['WOLF', 'SOLDIER','ARCHER','MAGE','PRIEST'];
+				for(var i = 0; i < mobOrder.length; i++){
+					var currentMob = DATA.SPAWN[mobOrder[i]];
+					if(currentMob.lastTime + currentMob.cooldown > DATA.TIME_NOW){
 						return false;
 					}
 				}
@@ -221,11 +295,11 @@ try{
 				if(!DATA.HERO){
 					return;
 				}
-				if(DATA.JUNGLE_MOBS.PRIEST && DATA.JUNGLE_MOBS.PRIEST.length){
-					for(var a = 0, maxA = DATA.JUNGLE_MOBS.PRIEST.length; a < maxA; a++){
-						var onePriest = DATA.JUNGLE_MOBS.PRIEST[a];
-						if(unitDistance(DATA.HERO, onePriest) < 2){
-							return onePriest;
+				if(DATA.ENEMY_HEROES && DATA.ENEMY_HEROES.length){
+					for(var c = 0, maxC = DATA.ENEMY_HEROES.length; c < maxC; c++){
+						var enemyHero = DATA.ENEMY_HEROES[c];
+						if(unitDistance(DATA.HERO, enemyHero) < 6){
+							return enemyHero;
 						}
 					}
 				}
@@ -234,6 +308,14 @@ try{
 						var oneBoss = DATA.JUNGLE_MOBS.BOSS[b];
 						if(unitDistance(DATA.HERO, oneBoss) < 2){
 							return oneBoss;
+						}
+					}
+				}
+				if(DATA.JUNGLE_MOBS.PRIEST && DATA.JUNGLE_MOBS.PRIEST.length){
+					for(var a = 0, maxA = DATA.JUNGLE_MOBS.PRIEST.length; a < maxA; a++){
+						var onePriest = DATA.JUNGLE_MOBS.PRIEST[a];
+						if(unitDistance(DATA.HERO, onePriest) < 2){
+							return onePriest;
 						}
 					}
 				}
@@ -269,25 +351,31 @@ try{
 				return currentLevel;
 			}
 			function checkTeamGoal(){
-				if(DATA.TIME_NOW > 11 && DATA.TIME_NOW < 14){
-					var ourTeam = game['TEAM-' + teamNumber];
-				}
+				return game[teamName].goal;
+			}
+			function amILeader(){
+				return game[teamName].leader == me;
 			}
 			/************* ACTING ******************/
 			function act(){
 				if(DATA.NOW == 'WAIT'){
 					return;
 				}
+				learnAbility();
 				if(DATA.NOW == 'BEFORE FIGHT'){
 					chooseCharacter();
-					learnAbility();
 					moveToGate();
 					return;
 				}
-				learnAbility();
-				jungle();
+				if(DATA.GOAL == 'JUNGLE'){
+					jungle();
+				}
+				if(DATA.GOAL == 'PROTECT'){
+					guardPlayer();
+				}
 				useAbilities();
 				randomUpgrade();
+				decideNextTeamGoal();
 			}
 			function learnAbility(){
 				if(!DATA.HERO || !DATA.LEVEL_UP){
@@ -320,6 +408,22 @@ try{
 					scope.order("AMove", [DATA.HERO], DATA.JUNGLE_POSITION);
 				}
 			}
+			function guardPlayer(){
+				if(!DATA.PLAYER || !DATA.HERO){
+					return;
+				}
+				try{
+					var distanceToPlayer = unitDistance(DATA.PLAYER, DATA.HERO);
+					var playerLocation = {x: DATA.PLAYER.getX(), y: DATA.PLAYER.getY()};
+					if(distanceToPlayer > 10){
+						scope.order("Move", [DATA.HERO], playerLocation);
+					}else{
+						scope.order("AMove", [DATA.HERO], playerLocation);
+					}
+				}catch(Pokemon){
+					console.log(Pokemon);
+				}
+			}
 			function useAbilities(){
 				if(!DATA.HERO || !DATA.ENEMY_CLOSE_TO_ME){
 					return;
@@ -342,6 +446,55 @@ try{
 				if(rngTech.times < 1){
 					DATA.UPGRADES.splice(rngTechNumber, 1);
 				}
+			}
+			function decideNextTeamGoal(){
+				if(!DATA.AM_I_TEAM_LEADER){
+					return;
+				}
+				if(DATA.GOAL == 'PROTECT'){
+					return;
+				}
+				if(DATA.GOAL == 'JUNGLE' && !DATA.JUNGLE_IS_EMPTY){
+					return;
+				}
+				if(DATA.GOAL == 'BOSS' && DATA.SPAWN.BOSS.lastTime + DATA.SPAWN.BOSS.cooldown < DATA.TIME_NOW){
+					return;
+				}
+				if(DATA.GOAL_START + DATA.GOAL_DURATION > DATA.TIME_NOW){
+					DATA.GOAL = 'REGROUP';
+					DATA.GOAL_START = DATA.TIME_NOW;
+					game[teamName].goal = DATA.GOAL;
+					console.log('Changing Team goal to '+DATA.GOAL);
+					return;
+				}
+				if(DATA.GOAL == 'REGROUP' && DATA.GOAL_START + DATA.GOAL_DURATION / 2 < DATA.TIME_NOW){
+					return;
+				}
+				var availableGoals = ['JUNGLE', 'BOSS', 'MID', 'INVADE'];
+				if(DATA.SPAWN.BOSS.lastTime + DATA.SPAWN.BOSS.cooldown > DATA.TIME_NOW){
+					availableGoals.splice(1,1);
+				}
+				if(!DATA.JUNGLE_IS_FULL){
+					availableGoals.splice(0,1);
+				}
+				var currentGoalIndex = availableGoals.indexOf(DATA.GOAL);
+				if(currentGoalIndex >= 0){
+					availableGoals.splice(currentGoalIndex,1);
+				}
+				if(availableGoals.length == 1){
+					DATA.GOAL = availableGoals[0];
+					DATA.GOAL_START = DATA.TIME_NOW;
+					game[teamName].goal = DATA.GOAL;
+					console.log('Changing Team goal to '+DATA.GOAL);
+					return;
+				}
+				var rngGoal = Math.floor(Math.random() * availableGoals.length);
+				DATA.GOAL = availableGoals[rngGoal];
+				if(DATA.GOAL!= 'JUNGLE' && DATA.GOAL != 'BOSS'){
+					DATA.GOAL_START = DATA.TIME_NOW;
+				}
+				game[teamName].goal = DATA.GOAL;
+				console.log('Changing Team goal to '+DATA.GOAL);
 			}
 			/********** MATH MAGIC **********/
 			function unitDistance(a, b){

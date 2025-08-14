@@ -11,19 +11,19 @@ try{
 	var me = scope.getMyPlayerNumber();
 	var team = (me % 2 == 1) ? 'top' : 'bottom';
 	var teamNumber = scope.getMyTeamNumber();
-	var teamName = 'TEAM-' + teamNumber;
 	if(!scope['BOT-' + me]){
 		scope['BOT-' + me] = (function(){
 			var DATA;
 			function init() {
 				try{
 					loadDefaultVariables();
-					loadTeamMemory();
 					loadBuildings();
 					loadTechnologies();
 					loadPositions();
 					loadRespawns();
 					loadSkillTree();
+                    loadAbilities();
+					loadTeamLeader();
 				}catch(Pokemon){
 					console.log('Error during init:\n'+Pokemon);
 				}
@@ -43,26 +43,16 @@ try{
 				DATA.LUCKY_NUMBER = Math.floor(Math.random() * 3) + 10;
 				DATA.JUNGLE_TARGET = 'WOLF';
 				DATA.LEVEL = 0;
-				DATA.GOAL_DURATION = 300;
+				DATA.GOAL_DURATION = 60;
 				DATA.GOAL_START = 0;// - DATA.GOAL_DURATION;
 				DATA.HERO_NAMES = ["Arlin", "Zalarc", "Qatar", "Viola", "Poly", "Karnon"];
-			}
-			function loadTeamMemory(){
-				if(!game[teamName]){
-					game[teamName] = {goal:'JUNGLE'};
-				}
-				if(!game[teamName].leader || game[teamName].leader > me){
-					game[teamName].leader = me;
-				}
-				for(var i = 0, max = game.players.length; i < max; i++){
-					var onePlayer = game.players[i];
-					var playerName = onePlayer.name;
-					var hisTeam = onePlayer.team.number;
-					if(hisTeam == teamNumber && playerName.indexOf('Computer') < 0){
-						game[teamName].leader = onePlayer.number;
-						game[teamName].goal = 'PROTECT';
-					}
-				}
+				DATA.HEALED = true;
+				DATA.MID = {
+					heal : (team == 'top') ? 10 : 106,
+					base : (team == 'top') ? 22 : 94,
+					push : (team == 'top') ? 2 : -2
+				};
+				DATA.MID.line = DATA.MID.base + DATA.MID.push;
 			}
 			function loadBuildings(){
 				DATA.CHOOSE = scope.getBuildings({type:"Select Character!", player: me, onlyFinshed: true})[0];
@@ -100,6 +90,7 @@ try{
 			}
 			function loadPositions(){
 				DATA.MAP = {};
+				DATA.MAP.HEAL = (team == 'top') ? {x:10,y:10} : {x:106,y:106};
 				DATA.MAP.GATE = (team == 'top') ? {x:14,y:37} : {x:102,y:79};
 				DATA.MAP.WOLF = (team == 'top') ? {x:39,y:68} : {x:78,y:48};
 				DATA.MAP.SOLDIER = (team == 'top') ? {x:15,y:73} : {x:101,y:42};
@@ -130,13 +121,40 @@ try{
 					"Pistol Whip",
 					"Cleave",
 					"Pistol Whip",
-					"Cleave"
+					"Cleave",
+					"Bolster Up",
+					"Bolster Up",
+					"Bolster Up",
+					"Bolster Up",
+					"Rifting Blade"
 				];
-				DATA.SKILLS = {
-					"Pistol Whip" : {cost: 30, cooldown : 4},
-					"Bolster Up" : {cost: 75, cooldown : 15},
-					"Cleave" : {cost: 55, cooldown : 12}
-				};
+			}
+            function loadAbilities(){
+                DATA.ABILITY = {
+                    "Pistol Whip" : {cost:30, cooldown: 4, lastTime : 0, learnt : false},
+                    "Cleave" : {cost:55, cooldown: 12, lastTime : 0, learnt : false},
+                    "Bolster Up" : {cost:75, cooldown: 15, lastTime : 0, learnt : false},
+                    "Rifting Blade" : {cost:200, cooldown: 90, lastTime : 0, learnt : false}
+                };
+            }
+			function loadTeamLeader(){
+                DATA.LEADER = me;
+                var allPlayers = game.players;
+                for(var i = 0, max = allPlayers.length; i < max; i++){
+					var onePlayer = allPlayers[i];
+                    if(onePlayer.team.number != teamNumber){
+                        continue;
+                    }
+					if(onePlayer.name.indexOf('Computer') < 0){
+						DATA.LEADER = onePlayer.number;
+                        break;
+					}
+                    if(onePlayer.number > DATA.LEADER){
+                        DATA.LEADER = onePlayer.number;
+                    }
+				}
+                DATA.AM_I_TEAM_LEADER = (DATA.LEADER == me);
+                DATA.GOAL = DATA.AM_I_TEAM_LEADER ? 'JUNGLE' : 'PROTECT';
 			}
 			/************* OBSERVE ******************/
 			function observe(){
@@ -144,32 +162,34 @@ try{
 				DATA.TIME_NOW = scope.getCurrentGameTimeInSec();
 				DATA.CENTER = scope.getBuildings({type:"Heroic Center", player: me, onlyFinshed: true})[0];
 				DATA.IS_BARRIER = findBarriers();
-				DATA.NOW = whatTimeItIs();
-				DATA.AM_I_TEAM_LEADER = amILeader();
+				DATA.STAGE = whatStageItIs();
 				DATA.HERO = findHero();
-				DATA.ALLY_HEROES = findAllies();
-				DATA.PLAYER = findLeaderHero();
+                DATA.JUNGLE_MOBS = findJungleMobs();
+                if(DATA.AM_I_TEAM_LEADER){
+                    DATA.JUNGLE_POSITION = DATA.MAP[DATA.JUNGLE_TARGET];
+                    DATA.MOB_NEARBY = isMobNearby();
+                    DATA.CLOSE_TO_POSITION = isPositionClose();
+                    DATA.ALLY_CLOSE_TO_POSITION = isAllyPositionClose();
+                    DATA.JUNGLE_TARGET = nextJungleTarget();
+                    DATA.JUNGLE_IS_EMPTY = isJungleEmpty();
+                    DATA.JUNGLE_IS_FULL = isJungleFull();
+					DATA.MID.distance = myDistanceFromMid();
+					DATA.MID.CLOSE_ENEMIES = enemiesAtMid();
+                }else{
+                    DATA.PLAYER = findPlayerHero();
+                }
 				DATA.ENEMY_HEROES = findEnemyHeroes();
-				DATA.JUNGLE_MOBS = findJungleMobs();
-				DATA.JUNGLE_POSITION = DATA.MAP[DATA.JUNGLE_TARGET];
-				DATA.MOB_NEARBY = isMobNearby();
-				DATA.CLOSE_TO_POSITION = isPositionClose();
-				DATA.ALLY_CLOSE_TO_POSITION = isAllyPositionClose();
-				DATA.JUNGLE_TARGET = nextJungleTarget();
-				DATA.JUNGLE_IS_EMPTY = isJungleEmpty();
-				DATA.JUNGLE_IS_FULL = isJungleFull();
 				DATA.ENEMY_CLOSE_TO_ME = isEnemyCloseToMe();
 				DATA.LEVEL_UP = false;
 				DATA.LEVEL = checkLevel();
-				DATA.GOAL = checkTeamGoal();
+				DATA.LOW_HP = isLowHP();
 			}
 			function findBarriers(){
 				var barriers = scope.getBuildings({type: "Barrier"});
 				return !!barriers.length;
 			}
-			function whatTimeItIs(){
-				var currentTime = scope.getCurrentGameTimeInSec();
-				if(currentTime <= DATA.LUCKY_NUMBER){
+			function whatStageItIs(){
+				if(DATA.TIME_NOW <= DATA.LUCKY_NUMBER){
 					return 'WAIT';
 				}
 				if(DATA.IS_BARRIER){
@@ -183,44 +203,22 @@ try{
 					return fightingUnits[0];
 				}
 			}
-			function findAllies(){
+			function findPlayerHero(){
 				var allyHeroes = [];
-				DATA.HERO_NAMES = ["Arlin", "Zalarc", "Qatar", "Viola", "Poly", "Karnon"];
-				allyHeroes = allyHeroes.concat(scope.getUnits({type: "Arlin", team :teamNumber}));
-				allyHeroes = allyHeroes.concat(scope.getUnits({type: "Zalarc", team :teamNumber}));
-				allyHeroes = allyHeroes.concat(scope.getUnits({type: "Qatar", team :teamNumber}));
-				allyHeroes = allyHeroes.concat(scope.getUnits({type: "Viola", team :teamNumber}));
-				allyHeroes = allyHeroes.concat(scope.getUnits({type: "Poly", team :teamNumber}));
-				allyHeroes = allyHeroes.concat(scope.getUnits({type: "Karnon", team :teamNumber}));
-				allyHeroes = allyHeroes.filter(function(oneUnit){
-					return oneUnit.unit.owner.number != me;
-				});
-				return allyHeroes;
-			}
-			function findLeaderHero(){
-				if(!DATA.ALLY_HEROES || !DATA.ALLY_HEROES.length){
+                DATA.HERO_NAMES.forEach(function(heroName){
+                    allyHeroes = allyHeroes.concat(scope.getUnits({type : heroName, player : DATA.LEADER}));
+                });
+				if(!allyHeroes.length){
 					return;
 				}
-				if(DATA.AM_I_TEAM_LEADER){
-					return;
-				}
-				var leaderHeroes = DATA.ALLY_HEROES.filter(function(oneAllyHero){
-					return oneAllyHero.unit.owner.number == game[teamName].leader;
-				});
-				if(!leaderHeroes || !leaderHeroes.length){
-					return;
-				}
-				return leaderHeroes[0];
+                return allyHeroes[0];
 			}
 			function findEnemyHeroes(){
 				var enemyHeroes = [];
 				var enemyTeamNumber = (teamNumber % 2) + 1;
-				enemyHeroes = enemyHeroes.concat(scope.getUnits({type: "Arlin", team :enemyTeamNumber}));
-				enemyHeroes = enemyHeroes.concat(scope.getUnits({type: "Zalarc", team :enemyTeamNumber}));
-				enemyHeroes = enemyHeroes.concat(scope.getUnits({type: "Qatar", team :enemyTeamNumber}));
-				enemyHeroes = enemyHeroes.concat(scope.getUnits({type: "Viola", team :enemyTeamNumber}));
-				enemyHeroes = enemyHeroes.concat(scope.getUnits({type: "Poly", team :enemyTeamNumber}));
-				enemyHeroes = enemyHeroes.concat(scope.getUnits({type: "Karnon", team :enemyTeamNumber}));
+                DATA.HERO_NAMES.forEach(function(heroName){
+                    enemyHeroes = enemyHeroes.concat(scope.getUnits({type : heroName, team : enemyTeamNumber}));
+                });
 				return enemyHeroes;
 			}
 			function findJungleMobs(){
@@ -234,7 +232,7 @@ try{
 				return jungle;
 			}
 			function nextJungleTarget(){
-				var mobOrder = ['WOLF', 'SOLDIER','ARCHER','MAGE','PRIEST'];//,'BOSS'
+				var mobOrder = ['WOLF','ARCHER','SOLDIER','MAGE','PRIEST'];//BOSS
 				if(DATA.ALLY_CLOSE_TO_POSITION && !DATA.MOB_NEARBY){
 					//mark current as completed
 					DATA.SPAWN[DATA.JUNGLE_TARGET].lastTime = DATA.TIME_NOW;
@@ -291,6 +289,33 @@ try{
 					}
 				}
 			}
+			function myDistanceFromMid(){
+				if(!DATA.HERO){
+					return;
+				}
+				return lineDistance(DATA.HERO.getX(), DATA.HERO.getY(), DATA.MID.line);
+			}
+			function enemiesAtMid(){
+				var enemyTeamNumber = (teamNumber % 2) + 1;
+				var currentDistance;
+				var enemies = scope.getUnits({team : enemyTeamNumber});
+				for(var i = 0, max = enemies.length; i < max; i++){
+					var oneEnemy = enemies[i];
+					currentDistance = distance(oneEnemy.getX(), oneEnemy.getY(), DATA.MID.line, DATA.MID.line);
+					if(currentDistance < 3){
+						return true;
+					}
+				}
+				var enemyTowers = scope.getBuildings({type: "Guardian Tower", team : enemyTeamNumber});
+				for(var j = 0, maxJ = enemyTowers.length; j < maxJ; j++){
+					var oneTower = enemyTowers[j];
+					currentDistance = distance(oneTower.getX(), oneTower.getY(), DATA.MID.line, DATA.MID.line);
+					if(currentDistance < 14){
+						return true;
+					}
+				}
+				return false;
+			}
 			function isEnemyCloseToMe(){
 				if(!DATA.HERO){
 					return;
@@ -306,7 +331,7 @@ try{
 				if(DATA.JUNGLE_MOBS.BOSS && DATA.JUNGLE_MOBS.BOSS.length){
 					for(var b = 0, maxB = DATA.JUNGLE_MOBS.BOSS.length; b < maxB; b++){
 						var oneBoss = DATA.JUNGLE_MOBS.BOSS[b];
-						if(unitDistance(DATA.HERO, oneBoss) < 2){
+						if(unitDistance(DATA.HERO, oneBoss) < 5){
 							return oneBoss;
 						}
 					}
@@ -314,7 +339,7 @@ try{
 				if(DATA.JUNGLE_MOBS.PRIEST && DATA.JUNGLE_MOBS.PRIEST.length){
 					for(var a = 0, maxA = DATA.JUNGLE_MOBS.PRIEST.length; a < maxA; a++){
 						var onePriest = DATA.JUNGLE_MOBS.PRIEST[a];
-						if(unitDistance(DATA.HERO, onePriest) < 2){
+						if(unitDistance(DATA.HERO, onePriest) < 5){
 							return onePriest;
 						}
 					}
@@ -350,32 +375,67 @@ try{
 				}
 				return currentLevel;
 			}
-			function checkTeamGoal(){
-				return game[teamName].goal;
-			}
-			function amILeader(){
-				return game[teamName].leader == me;
+			function isLowHP(){
+				//Dead hero will respawn with full HP
+				if(!DATA.HERO){
+					DATA.HEALED = true;
+					return true;
+				}
+				var currentHp = DATA.HERO.getCurrentHP();
+				var maxHp = 923 + Math.round(DATA.LEVEL * 202.5);
+				var percentHp = Math.round(currentHp * 100 / maxHp);
+				//Was injured - now fully healed up
+				if(!DATA.HEALED && percentHp > 80){
+					DATA.HEALED = true;
+					return false;
+				}
+				//Was injured - going to heal up
+				if(!DATA.HEALED){
+					return true;
+				}
+				//Was full hp - took a lot of damage
+				if(DATA.HEALED && (currentHp < 250 || percentHp < 20) ){
+					DATA.HEALED = false;
+					return true;
+				}
+				//was full hp - has enough hp
+				return false;
 			}
 			/************* ACTING ******************/
 			function act(){
-				if(DATA.NOW == 'WAIT'){
+				if(DATA.STAGE == 'WAIT'){
 					return;
 				}
 				learnAbility();
-				if(DATA.NOW == 'BEFORE FIGHT'){
+				if(DATA.STAGE == 'BEFORE FIGHT'){
 					chooseCharacter();
-					moveToGate();
+                    if(!DATA.PLAYER){
+                        moveToGate();
+                    }else{
+                        guardPlayer();
+                    }
+					return;
+				}
+				if(DATA.LOW_HP){
+					runToHealUp();
+					useAbilities();
+					randomUpgrade();
 					return;
 				}
 				if(DATA.GOAL == 'JUNGLE'){
 					jungle();
 				}
+				if(DATA.GOAL == 'MID'){
+					decideNextMidLocation();
+					mid();
+				}
 				if(DATA.GOAL == 'PROTECT'){
 					guardPlayer();
-				}
+				}else{
+                    decideNextTeamGoal();
+                }
 				useAbilities();
 				randomUpgrade();
-				decideNextTeamGoal();
 			}
 			function learnAbility(){
 				if(!DATA.HERO || !DATA.LEVEL_UP){
@@ -383,6 +443,7 @@ try{
 				}
 				var newSkillName = DATA.LEARN_UP_SKILLS[DATA.LEVEL - 1];
 				learn(DATA.HERO, newSkillName);
+                DATA.ABILITY[newSkillName].learnt = true;
 			}
 			function learn(unit, ability){
 				var command = scope.getCommandFromCommandName(ability);
@@ -400,13 +461,11 @@ try{
 				}
 				scope.order("Move", [DATA.HERO], DATA.MAP.GATE);
 			}
-			function jungle(){
+			function runToHealUp(){
 				if(!DATA.HERO){
 					return;
 				}
-				if(!DATA.CLOSE_TO_POSITION || DATA.HERO.getCurrentOrderName() == "Stop"){
-					scope.order("AMove", [DATA.HERO], DATA.JUNGLE_POSITION);
-				}
+				scope.order("Move", [DATA.HERO], DATA.MAP.HEAL);
 			}
 			function guardPlayer(){
 				if(!DATA.PLAYER || !DATA.HERO){
@@ -415,7 +474,7 @@ try{
 				try{
 					var distanceToPlayer = unitDistance(DATA.PLAYER, DATA.HERO);
 					var playerLocation = {x: DATA.PLAYER.getX(), y: DATA.PLAYER.getY()};
-					if(distanceToPlayer > 10){
+					if(distanceToPlayer > 2.5){
 						scope.order("Move", [DATA.HERO], playerLocation);
 					}else{
 						scope.order("AMove", [DATA.HERO], playerLocation);
@@ -424,12 +483,121 @@ try{
 					console.log(Pokemon);
 				}
 			}
+			function jungle(){
+				if(!DATA.HERO){
+					return;
+				}
+				if(!DATA.CLOSE_TO_POSITION || DATA.HERO.getCurrentOrderName() == "Stop"){
+					scope.order("AMove", [DATA.HERO], DATA.JUNGLE_POSITION);
+				}
+			}
+			function mid(){
+				if(!DATA.HERO){
+					return;
+				}
+				var side = (Math.random() > 0.5) ? 4 : -4;
+				var midLocation = {x: DATA.MID.line + side, y: DATA.MID.line - side};
+				if(DATA.MID.distance > 2){
+					scope.order("Move", [DATA.HERO], midLocation);
+				} else if(DATA.MID.distance > 1){
+					scope.order("AMove", [DATA.HERO], midLocation);
+				} else{
+					scope.order("Hold Position", [DATA.HERO]);
+				}
+			}
+			function decideNextMidLocation(){
+				if(DATA.MID.CLOSE_ENEMIES){
+					DATA.MID.line -= DATA.MID.push;
+				}else{
+					DATA.MID.line += DATA.MID.push;
+				}
+			}
+			function decideNextTeamGoal(){
+				if(!DATA.AM_I_TEAM_LEADER){
+                    console.log('NON-LEADER IS DECIDING ABOUT NEXT TEAM GOAL!!!');
+					return;
+				}/*
+				DATA.GOAL = 'MID';
+				return;
+				if(DATA.GOAL == 'JUNGLE'){
+					return;
+				}*/
+				if(DATA.GOAL == 'JUNGLE' && !DATA.JUNGLE_IS_EMPTY){
+                    console.log('GOAL = Continue to jungle.');
+					return;
+				}
+				if(DATA.GOAL == 'BOSS' && DATA.SPAWN.BOSS.lastTime + DATA.SPAWN.BOSS.cooldown < DATA.TIME_NOW){
+                    console.log('GOAL = Continue to boss.');
+					return;
+				}
+				if(DATA.GOAL == 'JUNGLE' && DATA.JUNGLE_IS_EMPTY){
+					DATA.GOAL = 'MID';
+					DATA.GOAL_START = DATA.TIME_NOW;
+					console.log('going mid for a while');
+					return;
+				}
+				if(DATA.GOAL == 'MID'){
+					if(DATA.GOAL_START + DATA.GOAL_DURATION < DATA.TIME_NOW){
+						DATA.GOAL = 'JUNGLE';
+						DATA.JUNGLE_TARGET = 'WOLF';
+						console.log('going to jungle from mid');
+					}
+					return;
+				}
+
+				if(DATA.GOAL != 'REGROUP' && DATA.GOAL_START + DATA.GOAL_DURATION > DATA.TIME_NOW){
+					DATA.GOAL = 'REGROUP';
+					DATA.GOAL_START = DATA.TIME_NOW;
+					console.log('Goal = regroup after long time.');
+					return;
+				}
+				if(DATA.GOAL == 'REGROUP' && DATA.GOAL_START + DATA.GOAL_DURATION / 6 < DATA.TIME_NOW){
+					console.log('Goal = Continue to regroup');
+					return;
+				}
+				var availableGoals = ['JUNGLE', 'BOSS', 'MID', 'INVADE'];
+				if(DATA.SPAWN.BOSS.lastTime + DATA.SPAWN.BOSS.cooldown > DATA.TIME_NOW){
+                    console.log('Boss not ready');
+					availableGoals.splice(1,1);
+				}
+				if(!DATA.JUNGLE_IS_FULL){
+                    console.log('Jungle not full');
+					availableGoals.splice(0,1);
+				}
+				var currentGoalIndex = availableGoals.indexOf(DATA.GOAL);
+				if(currentGoalIndex >= 0){
+                    console.log('Changing from '+DATA.GOAL);
+					availableGoals.splice(currentGoalIndex,1);
+				}
+				if(availableGoals.length == 1){
+					DATA.GOAL = availableGoals[0];
+					DATA.GOAL_START = DATA.TIME_NOW;
+					console.log('Only one goal to choose = '+DATA.GOAL);
+					return;
+				}
+				var rngGoal = Math.floor(Math.random() * availableGoals.length);
+				DATA.GOAL = availableGoals[rngGoal];
+				if(DATA.GOAL!= 'JUNGLE' && DATA.GOAL != 'BOSS'){
+					DATA.GOAL_START = DATA.TIME_NOW;
+                    console.log('Goal starts at '+DATA.GOAL_START);
+				}
+				console.log('Changing Team goal to '+DATA.GOAL);
+			}
 			function useAbilities(){
 				if(!DATA.HERO || !DATA.ENEMY_CLOSE_TO_ME){
 					return;
 				}
-				scope.order("Pistol Whip", [DATA.HERO], {unit: DATA.ENEMY_CLOSE_TO_ME});
-				scope.order("Cleave", [DATA.HERO], {unit: DATA.ENEMY_CLOSE_TO_ME});
+                var currentAbility = DATA.ABILITY["Pistol Whip"];
+                if(currentAbility.learnt && currentAbility.lastTime + currentAbility.cooldown < DATA.TIME_NOW){
+                    scope.order("Pistol Whip", [DATA.HERO], {unit: DATA.ENEMY_CLOSE_TO_ME});
+                    currentAbility.lastTime = DATA.TIME_NOW;
+                    return;
+                }
+                currentAbility = DATA.ABILITY.Cleave;
+                if(currentAbility.learnt && currentAbility.lastTime + currentAbility.cooldown < DATA.TIME_NOW){
+                    scope.order("Cleave", [DATA.HERO], {unit: DATA.ENEMY_CLOSE_TO_ME});
+                    currentAbility.lastTime = DATA.TIME_NOW;
+                }
 			}
 			function randomUpgrade(){
 				if(!DATA.UPGRADES.length || DATA.TIME_NOW < 60){
@@ -447,56 +615,10 @@ try{
 					DATA.UPGRADES.splice(rngTechNumber, 1);
 				}
 			}
-			function decideNextTeamGoal(){
-				if(!DATA.AM_I_TEAM_LEADER){
-					return;
-				}
-				if(DATA.GOAL == 'PROTECT'){
-					return;
-				}
-				if(DATA.GOAL == 'JUNGLE' && !DATA.JUNGLE_IS_EMPTY){
-					return;
-				}
-				if(DATA.GOAL == 'BOSS' && DATA.SPAWN.BOSS.lastTime + DATA.SPAWN.BOSS.cooldown < DATA.TIME_NOW){
-					return;
-				}
-				if(DATA.GOAL_START + DATA.GOAL_DURATION > DATA.TIME_NOW){
-					DATA.GOAL = 'REGROUP';
-					DATA.GOAL_START = DATA.TIME_NOW;
-					game[teamName].goal = DATA.GOAL;
-					console.log('Changing Team goal to '+DATA.GOAL);
-					return;
-				}
-				if(DATA.GOAL == 'REGROUP' && DATA.GOAL_START + DATA.GOAL_DURATION / 2 < DATA.TIME_NOW){
-					return;
-				}
-				var availableGoals = ['JUNGLE', 'BOSS', 'MID', 'INVADE'];
-				if(DATA.SPAWN.BOSS.lastTime + DATA.SPAWN.BOSS.cooldown > DATA.TIME_NOW){
-					availableGoals.splice(1,1);
-				}
-				if(!DATA.JUNGLE_IS_FULL){
-					availableGoals.splice(0,1);
-				}
-				var currentGoalIndex = availableGoals.indexOf(DATA.GOAL);
-				if(currentGoalIndex >= 0){
-					availableGoals.splice(currentGoalIndex,1);
-				}
-				if(availableGoals.length == 1){
-					DATA.GOAL = availableGoals[0];
-					DATA.GOAL_START = DATA.TIME_NOW;
-					game[teamName].goal = DATA.GOAL;
-					console.log('Changing Team goal to '+DATA.GOAL);
-					return;
-				}
-				var rngGoal = Math.floor(Math.random() * availableGoals.length);
-				DATA.GOAL = availableGoals[rngGoal];
-				if(DATA.GOAL!= 'JUNGLE' && DATA.GOAL != 'BOSS'){
-					DATA.GOAL_START = DATA.TIME_NOW;
-				}
-				game[teamName].goal = DATA.GOAL;
-				console.log('Changing Team goal to '+DATA.GOAL);
-			}
 			/********** MATH MAGIC **********/
+			function lineDistance(a, b, l){
+				return Math.abs((a + b) / 2 - l);
+			}
 			function unitDistance(a, b){
 				return distance(a.getX(), a.getY(), b.getX(), b.getY());
 			}

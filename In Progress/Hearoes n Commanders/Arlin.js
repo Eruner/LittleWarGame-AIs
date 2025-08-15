@@ -129,23 +129,18 @@ try{
 			}
 			function loadSkillTree(){
 				DATA.LEARN_UP_SKILLS = [
-					"Pistol Whip",
-					"Cleave",
-					"Pistol Whip",
-					"Cleave",
-					"Pistol Whip",
-					"Cleave",
-					"Pistol Whip",
-					"Cleave",
-					"Pistol Whip",
-					"Cleave",
-					"Pistol Whip",
-					"Cleave",
-					"Bolster Up",
-					"Bolster Up",
-					"Bolster Up",
-					"Bolster Up",
-					"Rifting Blade"
+					"Pistol Whip", "Cleave",
+					"Pistol Whip", "Cleave",
+					"Pistol Whip", "Cleave",
+					"Pistol Whip", "Cleave",
+					"Pistol Whip", "Cleave",
+					"Pistol Whip", "Cleave",
+					"Bolster Up", "Bolster Up",
+					"Bolster Up", "Bolster Up",
+					"Bolster Up", "Bolster Up",
+					"Rifting Blade", "Rifting Blade",
+					undefined, undefined,
+					undefined, "Rifting Blade"
 				];
 			}
             function loadAbilities(){
@@ -261,6 +256,9 @@ try{
 			}
 			function nextJungleTarget(){
 				var mobOrder = ['WOLF','ARCHER','SOLDIER','MAGE','PRIEST'];//BOSS
+				if(DATA.LEVEL > 9){
+					mobOrder.push('BOSS');
+				}
 				if(DATA.ALLY_CLOSE_TO_POSITION && !DATA.MOB_NEARBY){
 					//mark current as completed
 					DATA.SPAWN[DATA.JUNGLE_TARGET].lastTime = DATA.TIME_NOW;
@@ -283,6 +281,9 @@ try{
 			}
 			function isJungleEmpty(){
 				var mobOrder = ['WOLF', 'SOLDIER','ARCHER','MAGE','PRIEST'];
+				if(DATA.LEVEL > 9){
+					mobOrder.push('BOSS');
+				}
 				for(var i = 0; i < mobOrder.length; i++){
 					var currentMob = DATA.SPAWN[mobOrder[i]];
 					if((currentMob.lastTime + currentMob.cooldown) < DATA.TIME_NOW){
@@ -505,10 +506,13 @@ try{
 				useAbilities();
 			}
 			function learnAbility(){
-				if(!DATA.HERO || !DATA.LEVEL_UP){
+				if(!DATA.HERO || !DATA.LEVEL_UP || DATA.LEVEL >= DATA.LEARN_UP_SKILLS.length){
 					return;
 				}
 				var newSkillName = DATA.LEARN_UP_SKILLS[DATA.LEVEL - 1];
+				if(!newSkillName){
+					return;
+				}
 				learn(DATA.HERO, newSkillName);
                 DATA.ABILITY[newSkillName].learnt = true;
 			}
@@ -629,7 +633,6 @@ try{
 					DATA.GOAL = 'JUNGLE';
 					DATA.JUNGLE_TARGET = 'WOLF';
 				}
-
 			}
 			function afterRetreat(){
 				var enoughTime = (DATA.GOAL_START + DATA.GOAL_DURATION < DATA.TIME_NOW);
@@ -685,7 +688,7 @@ try{
 				try{
 					var isTroop = (DATA.ENEMY_CLOSE_TO_ME.getTypeName()=="Troop Ranger");
 					var currentAbility = DATA.ABILITY["Pistol Whip"];
-					if(currentAbility.learnt && currentAbility.lastTime + currentAbility.cooldown < DATA.TIME_NOW && !isTroop){
+					if(canCastAbility(currentAbility) && !isTroop){
 						scope.order("Pistol Whip", [DATA.HERO], {unit: DATA.ENEMY_CLOSE_TO_ME});
 						scope.order("Attack", [DATA.HERO], {unit: DATA.ENEMY_CLOSE_TO_ME},{shift:true});
 						currentAbility.lastTime = DATA.TIME_NOW;
@@ -693,8 +696,14 @@ try{
 					}
 					var isClose = (unitDistance(DATA.ENEMY_CLOSE_TO_ME, DATA.HERO) < 4);
 					currentAbility = DATA.ABILITY.Cleave;
-					if(currentAbility.learnt && currentAbility.lastTime + currentAbility.cooldown < DATA.TIME_NOW && isClose){
+					if(canCastAbility(currentAbility) && isClose){
 						scope.order("Cleave", [DATA.HERO], {unit: DATA.ENEMY_CLOSE_TO_ME});
+						currentAbility.lastTime = DATA.TIME_NOW;
+						return true;
+					}
+					currentAbility = DATA.ABILITY["Bolster Up"];
+					if(canCastAbility(currentAbility) && isClose){
+						scope.order("Bolster Up", [DATA.HERO]);
 						currentAbility.lastTime = DATA.TIME_NOW;
 						return true;
 					}
@@ -702,6 +711,11 @@ try{
 					console.log('Error during casting abilities');
 				}
 				return false;
+			}
+			function canCastAbility(currentAbility){
+				return currentAbility.learnt && 
+					currentAbility.lastTime + currentAbility.cooldown < DATA.TIME_NOW &&
+					currentAbility.cost < DATA.HERO.unit.mana;
 			}
 			function randomUpgrade(){
 				if(!DATA.UPGRADES || !DATA.UPGRADES.length || DATA.TIME_NOW < 60){

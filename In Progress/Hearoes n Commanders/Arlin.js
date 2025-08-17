@@ -1,6 +1,17 @@
 /*
 	Map = Heroes n Commanders
 	Bot = plays as hero Arlin
+
+	Features:
+	- always picks Arlin hero
+	- follows and protects human player
+	- buys shop upgrades at random
+	- uses 3 basic abilities (not ultimate yet)
+	- clears jungle
+	- clears enemy jungle
+	- kills boss too
+	- protects mid-line in between
+	- runs away when low on HP
 */
 var scope = scope || null;
 try{
@@ -51,7 +62,7 @@ try{
 				DATA.JUNGLE_TARGET = 'WOLF';
 				DATA.LEVEL = 0;
 				DATA.GOAL_DURATION = 15;
-				DATA.GOAL_START = 0;// - DATA.GOAL_DURATION;
+				DATA.GOAL_START = 0;
 				DATA.HERO_NAMES = ["Arlin", "Zalarc", "Qatar", "Viola", "Poly", "Karnon"];
 				DATA.HEALED = true;
 				DATA.MID = {
@@ -189,8 +200,8 @@ try{
 				DATA.IS_BARRIER = findBarriers();
 				DATA.STAGE = whatStageItIs();
 				DATA.HERO = findHero();
-                DATA.JUNGLE_MOBS = findJungleMobs();
             	DATA.ALLY_HEROES = findAllyHeroes();
+                DATA.JUNGLE_MOBS = findJungleMobs();
                 if(DATA.AM_I_TEAM_LEADER){
 					if(DATA.GOAL == 'INVADE'){
 						var enemyTeam = (me % 2 == 0) ? 'top' : 'bottom';
@@ -236,21 +247,12 @@ try{
 				}
 				return 'FIGHT';
 			}
+			/************** OBSERVE HEROES *************/
 			function findHero(){
 				var fightingUnits = scope.getUnits({type: DATA.HERO_NAME, player: me});
 				if(fightingUnits.length){
 					return fightingUnits[0];
 				}
-			}
-			function findPlayerHero(){
-				var allyHeroes = [];
-                DATA.HERO_NAMES.forEach(function(heroName){
-                    allyHeroes = allyHeroes.concat(scope.getUnits({type : heroName, player : DATA.LEADER}));
-                });
-				if(!allyHeroes.length){
-					return;
-				}
-                return allyHeroes[0];
 			}
 			function findAllyHeroes() {
 				var allyHeroes = [];
@@ -270,6 +272,16 @@ try{
 				}
 				return allyHeroes;
 			}
+			function findPlayerHero(){
+				var allyHeroes = [];
+                DATA.HERO_NAMES.forEach(function(heroName){
+                    allyHeroes = allyHeroes.concat(scope.getUnits({type : heroName, player : DATA.LEADER}));
+                });
+				if(!allyHeroes.length){
+					return;
+				}
+                return allyHeroes[0];
+			}
 			function findEnemyHeroes(){
 				var enemyHeroes = [];
 				var enemyTeamNumber = (teamNumber % 2) + 1;
@@ -278,6 +290,7 @@ try{
                 });
 				return enemyHeroes;
 			}
+			/************** OBSERVE JUNGLE *************/
 			function findJungleMobs(){
 				var jungle = {};
 				jungle.WOLF = scope.getUnits({type: "Stray Wolf"});
@@ -288,27 +301,58 @@ try{
 				jungle.BOSS = scope.getUnits({type: "Stray Golem"});
 				return jungle;
 			}
+			function isMobNearby(){
+				var enemies = DATA.JUNGLE_MOBS[DATA.JUNGLE_TARGET];
+				var allyUnits = scope.getUnits({team : teamNumber});
+				if(!enemies || !enemies.length || !allyUnits || !allyUnits.length){
+					return false;
+				}
+				for(var i = 0, max = enemies.length; i < max; i++){
+					var oneEnemy = enemies[i];
+					for(var j = 0, maxJ = allyUnits.length; j < maxJ; j++){
+						var oneAlly = allyUnits[j];
+						if(unitDistance(oneAlly, oneEnemy) < 7){
+							return true;
+						}
+					}
+				}
+			}
+			function isPositionClose(){
+				if(!DATA.HERO){
+					return false;
+				}
+				return distance(DATA.HERO.getX(), DATA.HERO.getY(), DATA.JUNGLE_POSITION.x, DATA.JUNGLE_POSITION.y) < 4;
+			}
+			function isAllyPositionClose(){
+				var allyUnits = scope.getUnits({team : teamNumber});
+				if(!allyUnits || !allyUnits.length){
+					return false;
+				}
+				for(var i = 0, max = allyUnits.length; i < max; i++){
+					var hisUnit = allyUnits[i];
+					var hisDistance = distance(hisUnit.getX(), hisUnit.getY(), DATA.JUNGLE_POSITION.x, DATA.JUNGLE_POSITION.y);
+					if(hisDistance < 4){
+						return true;
+					}
+				}
+				return false;
+			}
 			function nextJungleTarget(spawn){
-				var mobOrder = ['WOLF','ARCHER','SOLDIER','MAGE','PRIEST'];//BOSS
+				var mobOrder = ['WOLF','ARCHER','SOLDIER','MAGE','PRIEST'];
 				if(DATA.LEVEL > 7){
 					mobOrder.push('BOSS');
 				}
 				if(DATA.ALLY_CLOSE_TO_POSITION && !DATA.MOB_NEARBY){
-					//mark current as completed
 					spawn[DATA.JUNGLE_TARGET].lastTime = DATA.TIME_NOW;
 					var currentMobIndex = mobOrder.indexOf(DATA.JUNGLE_TARGET);
-					//find next available
 					for(var i = 1; i <= mobOrder.length; i++){
 						var nextMobIndex = (currentMobIndex + i) % mobOrder.length;
 						var nextMobName = mobOrder[nextMobIndex];
 						var mobSpawn = spawn[nextMobName];
 						if(mobSpawn.lastTime + mobSpawn.cooldown < DATA.TIME_NOW){
-							//console.log('going to next = '+nextMobName);
 							return nextMobName;
 						}
 					}
-					//console.log('going to default WOLF camp');
-					//when in doubt, go to default
 					return 'WOLF';
 				}
 				return DATA.JUNGLE_TARGET;
@@ -321,6 +365,16 @@ try{
 				for(var i = 0; i < mobOrder.length; i++){
 					var currentMob = DATA.SPAWN[mobOrder[i]];
 					if((currentMob.lastTime + currentMob.cooldown) < DATA.TIME_NOW){
+						return false;
+					}
+				}
+				return true;
+			}
+			function isJungleFull() {
+				var mobOrder = ['WOLF', 'SOLDIER','ARCHER','MAGE','PRIEST'];
+				for(var i = 0; i < mobOrder.length; i++){
+					var currentMob = DATA.SPAWN[mobOrder[i]];
+					if(currentMob.lastTime + currentMob.cooldown > DATA.TIME_NOW){
 						return false;
 					}
 				}
@@ -339,16 +393,6 @@ try{
 				}
 				return true;
 			}
-			function isJungleFull() {
-				var mobOrder = ['WOLF', 'SOLDIER','ARCHER','MAGE','PRIEST'];
-				for(var i = 0; i < mobOrder.length; i++){
-					var currentMob = DATA.SPAWN[mobOrder[i]];
-					if(currentMob.lastTime + currentMob.cooldown > DATA.TIME_NOW){
-						return false;
-					}
-				}
-				return true;
-			}
 			function isEnemyJungleFull() {
 				var mobOrder = ['WOLF', 'SOLDIER','ARCHER','MAGE','PRIEST'];
 				for(var i = 0; i < mobOrder.length; i++){
@@ -359,22 +403,7 @@ try{
 				}
 				return true;
 			}
-			function isMobNearby(){
-				var enemies = DATA.JUNGLE_MOBS[DATA.JUNGLE_TARGET];
-				var allyUnits = scope.getUnits({team : teamNumber});
-				if(!enemies || !enemies.length || !allyUnits || !allyUnits.length){
-					return false;
-				}
-				for(var i = 0, max = enemies.length; i < max; i++){
-					var oneEnemy = enemies[i];
-					for(var j = 0, maxJ = allyUnits.length; j < maxJ; j++){
-						var oneAlly = allyUnits[j];
-						if(unitDistance(oneAlly, oneEnemy) < 7){
-							return true;
-						}
-					}
-				}
-			}
+			/************** OBSERVE MID ***************/
 			function myDistanceFromMid(){
 				if(!DATA.HERO){
 					return;
@@ -402,6 +431,21 @@ try{
 				}
 				return false;
 			}
+			function isUnderEnemyTower(){
+				if(!DATA.HERO){
+					return false;
+				}
+				var enemyTowers = scope.getBuildings({type: "Guardian Tower", team : enemyTeamNumber});
+				enemyTowers = enemyTowers.concat(scope.getBuildings({type: "Forest Tower", team : enemyTeamNumber}));
+				for(var i = 0, max = enemyTowers.length; i < max; i++){
+					var towerDistance = unitDistance(DATA.HERO, enemyTowers[i]);
+					if(towerDistance < 9){
+						return true;
+					}
+				}
+				return false;
+			}
+			/************** OBSERVE OTHER *************/
 			function nearHealing(){
 				if(!DATA.HERO){
 					return false;
@@ -459,40 +503,6 @@ try{
 					}
 				}
 				return closestEnemy;
-			}
-			function isUnderEnemyTower(){
-				if(!DATA.HERO){
-					return false;
-				}
-				var enemyTowers = scope.getBuildings({type: "Guardian Tower", team : enemyTeamNumber});
-				enemyTowers = enemyTowers.concat(scope.getBuildings({type: "Forest Tower", team : enemyTeamNumber}));
-				for(var i = 0, max = enemyTowers.length; i < max; i++){
-					var towerDistance = unitDistance(DATA.HERO, enemyTowers[i]);
-					if(towerDistance < 9){
-						return true;
-					}
-				}
-				return false;
-			}
-			function isPositionClose(){
-				if(!DATA.HERO){
-					return false;
-				}
-				return distance(DATA.HERO.getX(), DATA.HERO.getY(), DATA.JUNGLE_POSITION.x, DATA.JUNGLE_POSITION.y) < 4;
-			}
-			function isAllyPositionClose(){
-				var allyUnits = scope.getUnits({team : teamNumber});
-				if(!allyUnits || !allyUnits.length){
-					return false;
-				}
-				for(var i = 0, max = allyUnits.length; i < max; i++){
-					var hisUnit = allyUnits[i];
-					var hisDistance = distance(hisUnit.getX(), hisUnit.getY(), DATA.JUNGLE_POSITION.x, DATA.JUNGLE_POSITION.y);
-					if(hisDistance < 4){
-						return true;
-					}
-				}
-				return false;
 			}
 			function checkLevel(){
 				if(!DATA.HERO){
@@ -658,6 +668,7 @@ try{
 					DATA.MID.line += DATA.MID.push;
 				}
 			}
+			/***** MACRO DECISIONS - WHAT TO DO NEXT ****/
 			function decideNextTeamGoal(){
 				if(!DATA.AM_I_TEAM_LEADER){
                     console.log('NON-LEADER IS DECIDING ABOUT NEXT TEAM GOAL!!!');
@@ -666,45 +677,46 @@ try{
 				if(!DATA.GOAL){
 					console.log('GOAL IS MISSING!');
 				}
+				// Hardcoded macro logic:
 				// GATE → JUNGLE → MID
-				// GATE2 → INVADE → MID/HEAL
-				// HEAL → MID → GATE(2)
+				// GATE2 → INVADE → MID OR HEAL
+				// HEAL → MID → GATE OR GATE2
 				switch(DATA.GOAL){
 					case 'GATE':
-						afterGate();
+						alreatyAt1stGate();
 						break;
 					case 'JUNGLE':
-						afterJungle();
+						alreadyJungling();
 						break;
 					case 'MID':
-						afterMid();
+						alreadyAtMidLane();
 						break;
 					case 'GATE2':
-						after2ndGate();
+						alreadyAt2ndGate();
 						break;
 					case 'INVADE':
-						afterInvade();
+						alreadyInvading();
 						break;
 					case 'HEAL':
-						afterHeal();
+						alreadyHealed();
 						break;
 				}
 			}
-			function afterGate(){
+			function alreatyAt1stGate(){
 				var enoughTime = (DATA.GOAL_START + DATA.GOAL_DURATION < DATA.TIME_NOW);
 				if(enoughTime){
 					DATA.GOAL = 'JUNGLE';
 					DATA.JUNGLE_TARGET = 'WOLF';
 				}
 			}
-			function afterJungle(){
+			function alreadyJungling(){
 				if(DATA.JUNGLE_IS_EMPTY){
 					DATA.GOAL = 'MID';
 					DATA.GOAL_START = DATA.TIME_NOW;
 					DATA.MID.line = DATA.MID.base + DATA.MID.push;
-				}//else continue jungling
+				}
 			}
-			function afterMid(){
+			function alreadyAtMidLane(){
 				var enoughTime = (DATA.GOAL_START + 2 * DATA.GOAL_DURATION < DATA.TIME_NOW);
 				if(!enoughTime){
 					return;
@@ -720,14 +732,14 @@ try{
 					return;
 				}
 			}
-			function after2ndGate(){
+			function alreadyAt2ndGate(){
 				var enoughTime = (DATA.GOAL_START + DATA.GOAL_DURATION < DATA.TIME_NOW);
 				if(enoughTime){
 					DATA.GOAL = 'INVADE';
 					DATA.JUNGLE_TARGET = 'WOLF';
 				}
 			}
-			function afterInvade(){
+			function alreadyInvading(){
 				if(DATA.ENEMY_JUNGLE_IS_EMPTY){
 					DATA.GOAL = 'MID';
 					DATA.GOAL_START = DATA.TIME_NOW;
@@ -738,13 +750,14 @@ try{
 					DATA.GOAL = 'HEAL';
 				}
 			}
-			function afterHeal(){
+			function alreadyHealed(){
 				if(DATA.NEAR_HEAL){
 					DATA.GOAL = 'MID';
 					DATA.GOAL_START = DATA.TIME_NOW;
 					DATA.MID.line = DATA.MID.base + DATA.MID.push;
 				}
 			}
+			/******** ABILITIES & UPGRADES *************/
 			function useAbilities(){
 				if(!DATA.HERO || !DATA.ENEMY_CLOSE_TO_ME){
 					return false;

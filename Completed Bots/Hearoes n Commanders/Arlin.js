@@ -33,9 +33,9 @@ try{
 					loadTechnologies();
 					loadPositions();
 					loadRespawns();
-					loadSkillTree();
                     loadAbilities();
 					loadTeamLeader();
+					loadSkillTree();
 				}catch(Pokemon){
 					console.log('Error during init:\n'+Pokemon);
 				}
@@ -45,6 +45,11 @@ try{
 					observe();
 				}catch(Pokemon){
 					console.log('Error during observe:\n'+Pokemon);
+				}
+				try{
+					orient();
+				}catch(Pokemon){
+					console.log('Error during orient:\n'+Pokemon);
 				}
 				try{
 					act();
@@ -71,6 +76,12 @@ try{
 					push : (team == 'top') ? 1 : -1
 				};
 				DATA.MID.line = DATA.MID.base + DATA.MID.push;
+				DATA.HP = {
+					PREVIOUS : 0,
+					CURRENT : 0,
+					DIFFERENCE : 0,
+					BONUS : 0
+				};
 			}
 			function loadBuildings(){
 				DATA.CHOOSE = scope.getBuildings({type:"Select Character!", player: me, onlyFinshed: true})[0];
@@ -78,32 +89,47 @@ try{
 			}
 			function loadTechnologies(){
 				DATA.UPGRADES = [
-					{ name : "Buy Hero Attack", cost : 110, times : 20 },
-					{ name : "Buy Hero Pierce", cost : 180, times : 20 },
-					{ name : "Buy Hero Attack Speed", cost : 110, times : 10 },
-					{ name : "Buy Hero Scaling", cost : 440, times : 10 },
-					{ name : "Buy Hero HP", cost : 140, times : 20 },
-					{ name : "Buy Hero Armor", cost : 185, times : 20 },
-					{ name : "Buy Hero Regeneration", cost : 300, times : 10 },
-					{ name : "Buy Hero Leech", cost : 500, times : 10 },
-					{ name : "Buy More Infantry", cost : 100, times : 5 },
-					{ name : "Buy More Ranger", cost : 100, times : 5 },
-					{ name : "Buy More Cleric", cost : 250, times : 3 },
-					{ name : "Buy More Wizard", cost : 250, times : 3 },
-					{ name : "Buy More Flyer", cost : 400, times : 3 },
-					{ name : "Buy More Mangonel", ost : 1250, times : 1 },
-					{ name : "Buy More Titan", cost : 2500, times : 1 },
-					{ name : "Buy Hero Mana", cost : 160, times : 20 },
-					{ name : "Buy Hero Mana Rate", cost : 160, times : 20 },
-					{ name : "Buy Hero Cooldown", cost : 440, times : 10 },
-					{ name : "Buy Hero Movespeed", cost : 425, times : 10 },
-					{ name : "Buy Hero Income", cost : 800, times : 1 },
-					{ name : "Buy Troop Atk", cost : 200, times : 10 },
-					{ name : "Buy Troop Pierce", cost : 250, times : 10 },
-					{ name : "Buy Troop HP", cost : 200, times : 10 },
-					{ name : "Buy Troop Armor", cost : 300, times : 10 },
-					{ name : "Buy Troop Atk Speed", cost : 600, times : 5 },
-					{ name : "Buy Troop HP Regeneration", cost : 400, times : 5 }
+					[
+						{ name : "Buy Hero Income", cost : 800, times : 1 }
+					],[
+						{ name : "Buy Hero Attack Speed", cost : 110, times : 10 },
+						{ name : "Buy Hero Movespeed", cost : 425, times : 10 },
+						{ name : "Buy Hero HP", cost : 140, times : 20 },
+						{ name : "Buy Scouting Sensor", cost : 0, times : 1 }
+					],[
+						{ name : "Buy Hero Attack", cost : 110, times : 20 },
+						{ name : "Buy Hero Pierce", cost : 180, times : 20 },
+						{ name : "Buy Hero Scaling", cost : 440, times : 10 },
+						{ name : "Buy Hero Armor", cost : 185, times : 20 },
+						{ name : "Buy Hero Regeneration", cost : 300, times : 10 },
+						{ name : "Buy Hero Leech", cost : 500, times : 10 },
+						{ name : "Buy Hero Mana", cost : 160, times : 20 }
+					],[
+						{ name : "Buy Troop Atk", cost : 200, times : 10 },
+						{ name : "Buy Troop Pierce", cost : 250, times : 10 },
+						{ name : "Buy Troop HP", cost : 200, times : 10 },
+						{ name : "Buy Troop Armor", cost : 300, times : 10 },
+						{ name : "Buy Troop Atk Speed", cost : 600, times : 5 },
+						{ name : "Buy Troop HP Regeneration", cost : 400, times : 5 }
+					],[
+						{ name : "Buy Hero Mana Rate", cost : 160, times : 20 },
+						{ name : "Buy More Infantry", cost : 100, times : 5 },
+						{ name : "Buy More Ranger", cost : 100, times : 5 },
+						{ name : "Buy More Cleric", cost : 250, times : 3 },
+						{ name : "Buy More Wizard", cost : 250, times : 3 },
+						{ name : "Buy More Flyer", cost : 400, times : 3 },
+						{ name : "Buy More Mangonel", cost : 1250, times : 1 },
+						{ name : "Buy More Titan", cost : 2500, times : 1 }
+					],[
+						{ name : "Buy Scouting Ward", cost : 400, times : 1 },
+						{ name : "Buy Scouting Bird", cost : 800, times : 1 },
+						{ name : "Buy Scouting Lookout", cost : 1200, times : 1 },
+						{ name : "Buy Scouting HP", cost : 40, times : 10 },
+						{ name : "Buy Scouting Cooldown", cost : 40, times : 5 },
+						{ name : "Buy Scouting Detection", cost : 300, times : 1 },
+						{ name : "Buy Scouting Income", cost : 400, times : 1 },
+						{ name : "Buy Hero Cooldown", cost : 440, times : 10 }
+					]
 				];
 			}
 			function loadPositions(){
@@ -147,28 +173,16 @@ try{
 				DATA.SPAWN.ENEMY.PRIEST = { cooldown: 100, lastTime: -180};
 				DATA.SPAWN.ENEMY.BOSS = { cooldown: 300, lastTime: -300};
 			}
-			function loadSkillTree(){
-				DATA.LEARN_UP_SKILLS = [
-					"Pistol Whip", "Cleave",
-					"Pistol Whip", "Cleave",
-					"Pistol Whip", "Cleave",
-					"Pistol Whip", "Cleave",
-					"Pistol Whip", "Cleave",
-					"Pistol Whip", "Cleave",
-					"Bolster Up", "Bolster Up",
-					"Bolster Up", "Bolster Up",
-					"Bolster Up", "Bolster Up",
-					"Rifting Blade", "Rifting Blade",
-					undefined, undefined,
-					undefined, "Rifting Blade"
-				];
-			}
             function loadAbilities(){
                 DATA.ABILITY = {
-                    "Pistol Whip" : {cost:30, cooldown: 4, lastTime : 0, learnt : false},
-                    "Cleave" : {cost:55, cooldown: 12, lastTime : 0, learnt : false},
-                    "Bolster Up" : {cost:75, cooldown: 15, lastTime : 0, learnt : false},
-                    "Rifting Blade" : {cost:200, cooldown: 90, lastTime : 0, learnt : false}
+                    "Pistol Whip" : {cost:30, cooldown: 4, lastTime : 0, learnt : false, level : 0, range:[5,5.5,6,6.5,7,9]},
+                    "Cleave" : {cost:55, cooldown: 12, lastTime : 0, learnt : false, level : 0},
+                    "Bolster Up" : {cost:75, cooldown: 15, lastTime : 0, learnt : false, level : 0},
+                    "Rifting Blade" : {cost:200, cooldown: 90, lastTime : 0, learnt : false, level : 0, range:10},
+                    "Use Ward" : {cost:0, cooldown: 60, lastTime : 0, learnt : false, level : 0},
+                    "Use Sensor" : {cost:0, cooldown: 30, lastTime : 0, learnt : false, level : 0},
+                    "Use Bird" : {cost:0, cooldown: 90, lastTime : 0, learnt : false, level : 0},
+                    "Use Lookout" : {cost:0, cooldown: 10, lastTime : 0, learnt : false, level : 0}
                 };
             }
 			function loadTeamLeader(){
@@ -190,6 +204,39 @@ try{
                 DATA.AM_I_TEAM_LEADER = (DATA.LEADER == me);
                 DATA.GOAL = DATA.AM_I_TEAM_LEADER ? 'JUNGLE' : 'PROTECT';
 			}
+			function loadSkillTree(){
+				if(DATA.AM_I_TEAM_LEADER){
+					DATA.LEARN_UP_SKILLS = [
+						"Pistol Whip", "Bolster Up",
+						"Pistol Whip", "Bolster Up",
+						"Pistol Whip", "Bolster Up",
+						"Pistol Whip", "Rifting Blade",
+						"Pistol Whip", "Bolster Up",
+						"Pistol Whip", "Bolster Up",
+						"Bolster Up", "Cleave",
+						"Cleave", "Rifting Blade",
+						"Cleave", "Cleave",
+						"Cleave", "Cleave",
+						undefined, undefined,
+						undefined, "Rifting Blade"
+					];
+				}else{
+					DATA.LEARN_UP_SKILLS = [
+						"Pistol Whip", "Cleave",
+						"Pistol Whip", "Cleave",
+						"Pistol Whip", "Cleave",
+						"Pistol Whip", "Rifting Blade",
+						"Pistol Whip", "Cleave",
+						"Pistol Whip", "Cleave",
+						"Cleave", "Bolster Up",
+						"Bolster Up", "Rifting Blade",
+						"Bolster Up", "Bolster Up",
+						"Bolster Up", "Bolster Up",
+						undefined, undefined,
+						undefined, "Rifting Blade"
+					];
+				}
+			}
 			/**********************************************************/
 			/********************* OBSERVE ****************************/
 			/**********************************************************/
@@ -197,57 +244,15 @@ try{
 				DATA.GOLD = scope.getGold();
 				DATA.TIME_NOW = scope.getCurrentGameTimeInSec();
 				DATA.CENTER = scope.getBuildings({type:"Heroic Center", player: me, onlyFinshed: true})[0];
-				DATA.IS_BARRIER = findBarriers();
-				DATA.STAGE = whatStageItIs();
 				DATA.HERO = findHero();
             	DATA.ALLY_HEROES = findAllyHeroes();
                 DATA.JUNGLE_MOBS = findJungleMobs();
-                if(DATA.AM_I_TEAM_LEADER){
-					if(DATA.GOAL == 'INVADE'){
-						var enemyTeam = (me % 2 == 0) ? 'top' : 'bottom';
-						DATA.JUNGLE_POSITION = DATA.MAP[enemyTeam][DATA.JUNGLE_TARGET];
-					}else{
-						DATA.JUNGLE_POSITION = DATA.MAP[team][DATA.JUNGLE_TARGET];
-					}
-                    DATA.MOB_NEARBY = isMobNearby();
-                    DATA.CLOSE_TO_POSITION = isPositionClose();
-                    DATA.ALLY_CLOSE_TO_POSITION = isAllyPositionClose();
-                    if(DATA.GOAL == 'INVADE'){
-                    	DATA.JUNGLE_TARGET = nextJungleTarget(DATA.SPAWN.ENEMY);
-                    }else{
-                    	DATA.JUNGLE_TARGET = nextJungleTarget(DATA.SPAWN);
-                    }
-                    DATA.JUNGLE_IS_EMPTY = isJungleEmpty();
-                    DATA.JUNGLE_IS_FULL = isJungleFull();
-                    DATA.ENEMY_JUNGLE_IS_EMPTY = isEnemyJungleEmpty();
-                    DATA.ENEMY_JUNGLE_IS_FULL = isEnemyJungleFull();
-					DATA.MID.distance = myDistanceFromMid();
-					DATA.MID.CLOSE_ENEMIES = enemiesAtMid();
-					DATA.NEAR_HEAL = nearHealing();
-                }else{
-                    DATA.PLAYER = findPlayerHero();
-                }
 				DATA.ENEMY_HEROES = findEnemyHeroes();
-				DATA.ENEMY_CLOSE_TO_ME = isEnemyCloseToMe();
-				DATA.UNDER_ENEMY_TOWER = isUnderEnemyTower();
-				DATA.LEVEL_UP = false;
+				DATA.ANY_BARRIES_ARROUND = findBarriers();
 				DATA.LEVEL = checkLevel();
-				DATA.LOW_HP = isLowHP();
+				DATA.HP = compareHpWithPreviousHp();
 			}
-			function findBarriers(){
-				var barriers = scope.getBuildings({type: "Barrier"});
-				return !!barriers.length;
-			}
-			function whatStageItIs(){
-				if(DATA.TIME_NOW <= DATA.LUCKY_NUMBER){
-					return 'WAIT';
-				}
-				if(DATA.IS_BARRIER){
-					return 'BEFORE FIGHT';
-				}
-				return 'FIGHT';
-			}
-			/************** OBSERVE HEROES *************/
+			/************** OBSERVE UNITS *************/
 			function findHero(){
 				var fightingUnits = scope.getUnits({type: DATA.HERO_NAME, player: me});
 				if(fightingUnits.length){
@@ -272,16 +277,6 @@ try{
 				}
 				return allyHeroes;
 			}
-			function findPlayerHero(){
-				var allyHeroes = [];
-                DATA.HERO_NAMES.forEach(function(heroName){
-                    allyHeroes = allyHeroes.concat(scope.getUnits({type : heroName, player : DATA.LEADER}));
-                });
-				if(!allyHeroes.length){
-					return;
-				}
-                return allyHeroes[0];
-			}
 			function findEnemyHeroes(){
 				var enemyHeroes = [];
 				var enemyTeamNumber = (teamNumber % 2) + 1;
@@ -290,7 +285,6 @@ try{
                 });
 				return enemyHeroes;
 			}
-			/************** OBSERVE JUNGLE *************/
 			function findJungleMobs(){
 				var jungle = {};
 				jungle.WOLF = scope.getUnits({type: "Stray Wolf"});
@@ -301,7 +295,78 @@ try{
 				jungle.BOSS = scope.getUnits({type: "Stray Golem"});
 				return jungle;
 			}
-			function isMobNearby(){
+			/************** OBSERVE OTHER *************/
+			function findBarriers(){
+				var barriers = scope.getBuildings({type: "Barrier"});
+				return !!barriers.length;
+			}
+			function checkLevel(){
+				DATA.LEVEL_UP = false;
+				if(!DATA.HERO){
+					return DATA.LEVEL;
+				}
+				var currentLevel = DATA.HERO.unit.level;
+				if(currentLevel > DATA.LEVEL){
+					DATA.LEVEL_UP = true;
+				}
+				return currentLevel;
+			}
+			function compareHpWithPreviousHp(){
+				var bonusHp = DATA.HP.BONUS;
+				if(!DATA.HERO){
+					return {
+						PREVIOUS : 0,
+						CURRENT : 0,
+						DIFFERENCE : 0,
+						BONUS : bonusHp
+					};
+				}
+				var previousHp = DATA.HP.CURRENT;
+				var currentHp = DATA.HERO.getCurrentHP();
+				var diffHp = currentHp - currentHp;
+				return {
+					PREVIOUS : previousHp,
+					CURRENT : currentHp,
+					DIFFERENCE : diffHp,
+					BONUS : bonusHp
+				};
+			}
+			/**********************************************************/
+			/********************** ORIENT ****************************/
+			/**********************************************************/
+			function orient(){
+				if(DATA.AM_I_TEAM_LEADER){
+					if(DATA.GOAL == 'INVADE'){
+						var enemyTeam = (me % 2 == 0) ? 'top' : 'bottom';
+						DATA.JUNGLE_POSITION = DATA.MAP[enemyTeam][DATA.JUNGLE_TARGET];
+					}else{
+						DATA.JUNGLE_POSITION = DATA.MAP[team][DATA.JUNGLE_TARGET];
+					}
+                    DATA.MOB_NEARBY = isJungleMobNearby();
+                    DATA.CLOSE_TO_POSITION = isCloseToJunglePosition();
+                    DATA.ALLY_CLOSE_TO_POSITION = isAllyCloseToJunglePosition();
+                    if(DATA.GOAL == 'INVADE'){
+                    	DATA.JUNGLE_TARGET = nextJungleTarget(DATA.SPAWN.ENEMY);
+                    }else{
+                    	DATA.JUNGLE_TARGET = nextJungleTarget(DATA.SPAWN);
+                    }
+                    DATA.JUNGLE_IS_EMPTY = isJungleEmpty();
+                    DATA.JUNGLE_IS_FULL = isJungleFull();
+                    DATA.ENEMY_JUNGLE_IS_EMPTY = isEnemyJungleEmpty();
+                    DATA.ENEMY_JUNGLE_IS_FULL = isEnemyJungleFull();
+					DATA.MID.distance = myDistanceFromMid();
+					DATA.MID.CLOSE_ENEMIES = enemiesAtMid();
+					DATA.NEAR_HEAL = nearHealingSpot();
+                }else{
+                    DATA.PLAYER = findPlayerHero();
+                }
+				DATA.STAGE = hasGameStarted();
+				DATA.ENEMY_CLOSE_TO_ME = isEnemyCloseToMe();
+				DATA.UNDER_ENEMY_TOWER = isUnderEnemyTower();
+				DATA.LOW_ON_HP = isLowOnHP();
+			}
+			/******************* ORIENT IN JUNGLE *********************/
+			function isJungleMobNearby(){
 				var enemies = DATA.JUNGLE_MOBS[DATA.JUNGLE_TARGET];
 				var allyUnits = scope.getUnits({team : teamNumber});
 				if(!enemies || !enemies.length || !allyUnits || !allyUnits.length){
@@ -317,13 +382,13 @@ try{
 					}
 				}
 			}
-			function isPositionClose(){
+			function isCloseToJunglePosition(){
 				if(!DATA.HERO){
 					return false;
 				}
 				return distance(DATA.HERO.getX(), DATA.HERO.getY(), DATA.JUNGLE_POSITION.x, DATA.JUNGLE_POSITION.y) < 4;
 			}
-			function isAllyPositionClose(){
+			function isAllyCloseToJunglePosition(){
 				var allyUnits = scope.getUnits({team : teamNumber});
 				if(!allyUnits || !allyUnits.length){
 					return false;
@@ -403,7 +468,7 @@ try{
 				}
 				return true;
 			}
-			/************** OBSERVE MID ***************/
+			/******************* ORIENT AT MID-LANE *******************/
 			function myDistanceFromMid(){
 				if(!DATA.HERO){
 					return;
@@ -445,32 +510,51 @@ try{
 				}
 				return false;
 			}
-			/************** OBSERVE OTHER *************/
-			function nearHealing(){
+			/******************* ORIENT OTHER *************************/
+			function nearHealingSpot(){
 				if(!DATA.HERO){
 					return false;
 				}
 				var distanceToHeal = distance(DATA.HERO.getX(), DATA.HERO.getY(), DATA.MAP[team].HEAL.x, DATA.MAP[team].HEAL.y);
 				return distanceToHeal < 2;
 			}
+			function findPlayerHero(){
+				var allyHeroes = [];
+                DATA.HERO_NAMES.forEach(function(heroName){
+                    allyHeroes = allyHeroes.concat(scope.getUnits({type : heroName, player : DATA.LEADER}));
+                });
+				if(!allyHeroes.length){
+					return;
+				}
+                return allyHeroes[0];
+			}
+			function hasGameStarted(){
+				if(DATA.TIME_NOW <= DATA.LUCKY_NUMBER){
+					return 'WAIT';
+				}
+				if(DATA.ANY_BARRIES_ARROUND){
+					return 'BEFORE FIGHT';
+				}
+				return 'FIGHT';
+			}
 			function isEnemyCloseToMe(){
 				try{
 					if(!DATA.HERO){
 						return;
 					}
-					var closeEnemy = findClosest(DATA.ENEMY_HEROES, 7);
+					var closeEnemy = findClosest(DATA.ENEMY_HEROES, 10);
 					if(closeEnemy){
 						return closeEnemy;
 					}
-					closeEnemy = findClosest(DATA.JUNGLE_MOBS.BOSS, 7);
+					closeEnemy = findClosest(DATA.JUNGLE_MOBS.BOSS, 10);
 					if(closeEnemy){
 						return closeEnemy;
 					}
-					closeEnemy = findClosest(DATA.JUNGLE_MOBS.PRIEST, 7);
+					closeEnemy = findClosest(DATA.JUNGLE_MOBS.PRIEST, 10);
 					if(closeEnemy){
 						return closeEnemy;
 					}
-					closeEnemy = findClosest(DATA.JUNGLE_MOBS.MAGE, 7);
+					closeEnemy = findClosest(DATA.JUNGLE_MOBS.MAGE, 10);
 					if(closeEnemy){
 						return closeEnemy;
 					}
@@ -504,25 +588,14 @@ try{
 				}
 				return closestEnemy;
 			}
-			function checkLevel(){
-				if(!DATA.HERO){
-					return DATA.LEVEL;
-				}
-				var currentLevel = DATA.HERO.unit.level;
-				if(currentLevel > DATA.LEVEL){
-					DATA.LEVEL_UP = true;
-				}
-				return currentLevel;
-			}
-			function isLowHP(){
+			function isLowOnHP(){
 				//Dead hero will respawn with full HP
 				if(!DATA.HERO){
 					DATA.HEALED = true;
 					return true;
 				}
-				var currentHp = DATA.HERO.getCurrentHP();
-				var maxHp = 923 + Math.round(DATA.LEVEL * 202.5);
-				var percentHp = Math.round(currentHp * 100 / maxHp);
+				var maxHp = 923 + Math.round(DATA.LEVEL * 202.5) + DATA.HP.BONUS;
+				var percentHp = Math.round(DATA.HP.CURRENT * 100 / maxHp);
 				//Was injured - now fully healed up
 				if(!DATA.HEALED && percentHp > 80){
 					DATA.HEALED = true;
@@ -533,7 +606,7 @@ try{
 					return true;
 				}
 				//Was full hp - took a lot of damage
-				if(DATA.HEALED && (currentHp < 250 || percentHp < 20) ){
+				if(DATA.HEALED && (DATA.HP.CURRENT < 250 || percentHp < 20) ){
 					DATA.HEALED = false;
 					return true;
 				}
@@ -557,8 +630,8 @@ try{
                     }
 					return;
 				}
-				randomUpgrade();
-				if(DATA.LOW_HP || DATA.UNDER_ENEMY_TOWER || DATA.GOAL == 'BACK'){
+				buyRandomUpgrade();
+				if(DATA.LOW_ON_HP || DATA.UNDER_ENEMY_TOWER || DATA.GOAL == 'BACK'){
 					runToHealUp();
 					return;
 				}
@@ -582,6 +655,7 @@ try{
                 }
 				useAbilities();
 			}
+			/******************* LIST OF ACTIONS *****************/
 			function learnAbility(){
 				if(!DATA.HERO || !DATA.LEVEL_UP || DATA.LEVEL >= DATA.LEARN_UP_SKILLS.length){
 					return;
@@ -592,10 +666,11 @@ try{
 				}
 				learn(DATA.HERO, newSkillName);
                 DATA.ABILITY[newSkillName].learnt = true;
+                DATA.ABILITY[newSkillName].level++;
 			}
 			function learn(unit, ability){
 				var command = scope.getCommandFromCommandName(ability);
-				unit.unit.learn(command);
+				unit.unit.learn(command);//workaround for abilities that require target
 			}
 			function chooseCharacter(){
 				if(DATA.HERO){
@@ -668,7 +743,7 @@ try{
 					DATA.MID.line += DATA.MID.push;
 				}
 			}
-			/***** MACRO DECISIONS - WHAT TO DO NEXT ****/
+			/******** MACRO DECISIONS - WHAT TO DO NEXT ******/
 			function decideNextTeamGoal(){
 				if(!DATA.AM_I_TEAM_LEADER){
                     console.log('NON-LEADER IS DECIDING ABOUT NEXT TEAM GOAL!!!');
@@ -757,19 +832,33 @@ try{
 					DATA.MID.line = DATA.MID.base + DATA.MID.push;
 				}
 			}
-			/******** ABILITIES & UPGRADES *************/
+			/********** ABILITIES & UPGRADES *************/
 			function useAbilities(){
-				if(!DATA.HERO || !DATA.ENEMY_CLOSE_TO_ME){
+				if(!DATA.HERO){
+					return false;
+				}
+				var currentAbility;
+				if(!DATA.ENEMY_CLOSE_TO_ME){
+					currentAbility = DATA.ABILITY["Use Sensor"];
+					if(canCastAbility(currentAbility)){
+						scope.order("Use Sensor", [DATA.HERO]);
+						currentAbility.lastTime = DATA.TIME_NOW;
+						return true;
+					}
 					return false;
 				}
 				try{
 					var isTroop = (DATA.ENEMY_CLOSE_TO_ME.getTypeName()=="Troop Ranger");
-					var currentAbility = DATA.ABILITY["Pistol Whip"];
+					currentAbility = DATA.ABILITY["Pistol Whip"];
 					if(canCastAbility(currentAbility) && !isTroop){
-						scope.order("Pistol Whip", [DATA.HERO], {unit: DATA.ENEMY_CLOSE_TO_ME});
-						scope.order("Attack", [DATA.HERO], {unit: DATA.ENEMY_CLOSE_TO_ME},{shift:true});
-						currentAbility.lastTime = DATA.TIME_NOW;
-						return true;
+						var pistolRange = currentAbility.range[currentAbility.level-1];
+						var isCloseToPistol = (unitDistance(DATA.ENEMY_CLOSE_TO_ME, DATA.HERO) < pistolRange);
+						if(isCloseToPistol){
+							scope.order("Pistol Whip", [DATA.HERO], {unit: DATA.ENEMY_CLOSE_TO_ME});
+							scope.order("Attack", [DATA.HERO], {unit: DATA.ENEMY_CLOSE_TO_ME},{shift:true});
+							currentAbility.lastTime = DATA.TIME_NOW;
+							return true;
+						}
 					}
 					var isClose = (unitDistance(DATA.ENEMY_CLOSE_TO_ME, DATA.HERO) < 4);
 					currentAbility = DATA.ABILITY.Cleave;
@@ -784,6 +873,19 @@ try{
 						currentAbility.lastTime = DATA.TIME_NOW;
 						return true;
 					}
+					currentAbility = DATA.ABILITY["Rifting Blade"];
+					var isBoss = (DATA.ENEMY_CLOSE_TO_ME.getTypeName() == "Stray Golem");
+					if(canCastAbility(currentAbility) && isBoss){
+						scope.order("Rifting Blade", [DATA.HERO], {unit: DATA.ENEMY_CLOSE_TO_ME});
+						currentAbility.lastTime = DATA.TIME_NOW;
+						return true;
+					}
+					currentAbility = DATA.ABILITY["Use Sensor"];
+					if(canCastAbility(currentAbility)){
+						scope.order("Use Sensor", [DATA.HERO]);
+						currentAbility.lastTime = DATA.TIME_NOW;
+						return true;
+					}
 				}catch(Pokemon){
 					console.log('Error during casting abilities');
 				}
@@ -794,22 +896,32 @@ try{
 					currentAbility.lastTime + currentAbility.cooldown < DATA.TIME_NOW &&
 					currentAbility.cost < DATA.HERO.unit.mana;
 			}
-			function randomUpgrade(){
-				if(!DATA.UPGRADES || !DATA.UPGRADES.length || DATA.TIME_NOW < 60){
+			function buyRandomUpgrade(){
+				if(!DATA.UPGRADES || !DATA.UPGRADES.length || !DATA.UPGRADES[0].length || DATA.TIME_NOW < 60){
 					return;//everything upgraded OR cannot upgrade yet
 				}
 				try{
-					var rngTechNumber = Math.floor(Math.random() * DATA.UPGRADES.length);
-					var rngTech = DATA.UPGRADES[rngTechNumber];
+					var rngTechNumber = Math.floor(Math.random() * DATA.UPGRADES[0].length);
+					var rngTech = DATA.UPGRADES[0][rngTechNumber];
 					if(!rngTech || rngTech.cost > DATA.GOLD || !DATA.CENTER){
 						return;
 					}
 					scope.order(rngTech.name, [DATA.CENTER]);
 					DATA.GOLD -= rngTech.cost;
 					rngTech.times--;
-					DATA.UPGRADES[rngTechNumber] = rngTech;
+					if(rngTech.name == "Buy Hero HP"){
+						DATA.HP.BONUS += 100;
+					}
+					if(rngTech.name == "Buy Scouting Sensor"){
+						DATA.ABILITY["Use Sensor"].learnt = true;
+						DATA.ABILITY["Use Sensor"].level = 1;
+					}
+					DATA.UPGRADES[0][rngTechNumber] = rngTech;
 					if(rngTech.times < 1){
-						DATA.UPGRADES.splice(rngTechNumber, 1);
+						DATA.UPGRADES[0].splice(rngTechNumber, 1);
+					}
+					if(!DATA.UPGRADES[0].length){
+						DATA.UPGRADES.splice(0, 1);
 					}
 				}catch(Pokemon){
 					console.log('Error during buying upgrades');

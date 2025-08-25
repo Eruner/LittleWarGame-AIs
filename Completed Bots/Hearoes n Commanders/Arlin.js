@@ -66,7 +66,7 @@ try{
 				DATA.LUCKY_NUMBER = Math.floor(Math.random() * 2) + 6;
 				DATA.JUNGLE_TARGET = 'WOLF';
 				DATA.LEVEL = 0;
-				DATA.GOAL_DURATION = 15;
+				DATA.GOAL_DURATION = 12;
 				DATA.GOAL_START = 0;
 				DATA.HERO_NAMES = ["Arlin", "Zalarc", "Qatar", "Viola", "Poly", "Karnon"];
 				DATA.HEALED = true;
@@ -792,7 +792,7 @@ try{
 				}
 			}
 			function alreadyAtMidLane(){
-				var enoughTime = (DATA.GOAL_START + 2 * DATA.GOAL_DURATION < DATA.TIME_NOW);
+				var enoughTime = (DATA.GOAL_START + 3 * DATA.GOAL_DURATION < DATA.TIME_NOW);
 				if(!enoughTime){
 					return;
 				}

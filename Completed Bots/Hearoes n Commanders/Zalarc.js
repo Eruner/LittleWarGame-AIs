@@ -66,14 +66,14 @@ try{
 				DATA.LUCKY_NUMBER = Math.floor(Math.random() * 2) + 6;
 				DATA.JUNGLE_TARGET = 'WOLF';
 				DATA.LEVEL = 0;
-				DATA.GOAL_DURATION = 15;
+				DATA.GOAL_DURATION = 12;
 				DATA.GOAL_START = 0;
 				DATA.HERO_NAMES = ["Arlin", "Zalarc", "Qatar", "Viola", "Poly", "Karnon"];
 				DATA.HEALED = true;
 				DATA.MID = {
 					heal : (team == 'top') ? 10 : 106,
 					base : (team == 'top') ? 32 : 84,
-					push : (team == 'top') ? 1 : -1
+					push : (team == 'top') ? 2 : -2
 				};
 				DATA.MID.line = DATA.MID.base + DATA.MID.push;
 				DATA.HP = {

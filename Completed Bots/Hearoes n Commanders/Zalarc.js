@@ -737,7 +737,7 @@ try{
 					return true;
 				}
 				//Was full hp - took a lot of damage
-				if(DATA.HEALED && (DATA.HP.CURRENT < 250 || percentHp < 30) ){
+				if(DATA.HEALED && (DATA.HP.CURRENT < 210 || percentHp < 25) ){
 					DATA.HEALED = false;
 					return true;
 				}
@@ -860,10 +860,13 @@ try{
 					}
 					var distanceToPlayer = unitDistance(DATA.PLAYER, DATA.HERO);
 					var playerLocation = {x: DATA.PLAYER.getX(), y: DATA.PLAYER.getY()};
-					if(distanceToPlayer > 5){
+					if(DATA.ENEMY_TO_KITE){
+						scope.order("Move", [DATA.HERO], DATA.KITE_LOCATION);
+						scope.order("Attack", [DATA.HERO], {unit: DATA.ENEMY_CLOSE_TO_ME.unit},{shift:true});
+					} else if(distanceToPlayer > 5){
 						if(DATA.IS_DODGE_READY){
 							castToArea("Dodge", DATA.HERO, playerLocation);
-							//scope.order("Dodge", [DATA.HERO], playerLocation);
+							//scope.order("Dodge", [DATA.HERO], playerLocation);//doesn't work
 							DATA.ABILITY.Dodge.lastTime = DATA.TIME_NOW;
 							scope.order("AMove", [DATA.HERO], playerLocation, {shift : true});
 						}else{
@@ -1031,7 +1034,7 @@ try{
 				try{
 					var isClose = (unitDistance(enemy, DATA.HERO) < 4);
 					currentAbility = DATA.ABILITY.Dodge;
-					if(DATA.IS_DODGE_READY && DATA.KITE_LOCATION){
+					if(DATA.IS_DODGE_READY && DATA.KITE_LOCATION && isClose){
 						castToArea("Dodge", DATA.HERO, DATA.KITE_LOCATION);
 						//scope.order("Dodge", [DATA.HERO], DATA.KITE_LOCATION);//doesn't work
 						currentAbility.lastTime = DATA.TIME_NOW;

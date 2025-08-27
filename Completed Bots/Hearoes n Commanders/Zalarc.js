@@ -1065,6 +1065,10 @@ try{
 						currentAbility.lastTime = DATA.TIME_NOW;
 						return true;
 					}
+					if(isClose && DATA.ENEMY_TO_KITE){
+						scope.order("Move", [DATA.HERO], DATA.KITE_LOCATION);
+						scope.order("Attack", [DATA.HERO], {unit: enemy}, {shift:true});
+					}
 				}catch(Pokemon){
 					console.log('Error during casting abilities');
 					console.log(Pokemon);

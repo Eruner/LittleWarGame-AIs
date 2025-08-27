@@ -1068,6 +1068,7 @@ try{
 					if(isClose && DATA.ENEMY_TO_KITE){
 						scope.order("Move", [DATA.HERO], DATA.KITE_LOCATION);
 						scope.order("Attack", [DATA.HERO], {unit: enemy}, {shift:true});
+						return true;
 					}
 				}catch(Pokemon){
 					console.log('Error during casting abilities');

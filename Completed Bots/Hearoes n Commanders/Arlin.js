@@ -93,7 +93,7 @@ try{
 						{ name : "Buy Hero Income", cost : 800, times : 1 }
 					],[
 						{ name : "Buy Hero Attack Speed", cost : 650, times : 10 },
-						{ name : "Buy Hero Movespeed", cost : 425, times : 10 },
+						{ name : "Buy Hero Movepeed", cost : 425, times : 10 },
 						{ name : "Buy Hero HP", cost : 140, times : 20 },
 						{ name : "Buy Scouting Sensor", cost : 0, times : 1 }
 					],[

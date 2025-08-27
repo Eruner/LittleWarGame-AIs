@@ -97,17 +97,17 @@ try{
 						{ name : "Buy Hero Attack Speed", cost : 650, times : 5 },
 						{ name : "Buy Scouting Sensor", cost : 0, times : 1 }
 					],[
-						{ name : "Buy Hero Attack Speed", cost : 650, times : 5 },
-						{ name : "Buy Hero Movespeed", cost : 425, times : 10 },
+						{ name : "Buy Hero Movepeed", cost : 425, times : 10 },
+						{ name : "Buy Hero Attack", cost : 110, times : 10 },
 						{ name : "Buy Hero HP", cost : 140, times : 10 }
 					],[
-						{ name : "Buy Hero Attack", cost : 110, times : 10 },
 						{ name : "Buy Hero HP", cost : 140, times : 20 },
 						{ name : "Buy Hero Pierce", cost : 180, times : 20 },
 						{ name : "Buy Hero Scaling", cost : 440, times : 10 },
 						{ name : "Buy Hero Armor", cost : 185, times : 20 },
 						{ name : "Buy Hero Regeneration", cost : 300, times : 10 },
 						{ name : "Buy Hero Leech", cost : 500, times : 10 },
+						{ name : "Buy Hero Attack Speed", cost : 650, times : 5 },
 						{ name : "Buy Hero Mana", cost : 160, times : 20 }
 					],[
 						{ name : "Buy Troop Atk", cost : 200, times : 10 },

@@ -137,22 +137,22 @@ try{
 				};
 			}
 			function loadTeamLeader(){
-                AI.LEADER = AI.me;
-                var allPlayers = game.players;
-                for(var i = 0, max = allPlayers.length; i < max; i++){
+				AI.LEADER = AI.me;
+				var allPlayers = game.players;
+				for(var i = 0, max = allPlayers.length; i < max; i++){
 					var onePlayer = allPlayers[i];
-                    if(onePlayer.team.number != AI.teamNumber){
-                        continue;
-                    }
+					if(onePlayer.team.number != AI.teamNumber){
+						continue;
+					}
 					if(onePlayer.name.indexOf('Computer') < 0){
 						AI.LEADER = onePlayer.number;
-                        break;
+						break;
 					}
-                    if(onePlayer.number < AI.LEADER){
-                        AI.LEADER = onePlayer.number;
-                    }
+					if(onePlayer.number < AI.LEADER){
+						AI.LEADER = onePlayer.number;
+					}
 				}
-                AI.AM_I_TEAM_LEADER = (AI.LEADER == AI.me);
+				AI.AM_I_TEAM_LEADER = (AI.LEADER == AI.me);
 			}
 			function loadHeroes(){
 				AI.HERO_BRAINS = {
@@ -331,7 +331,6 @@ try{
 								AI.HERO_INFO.abilities[0].lastTime = AI.TIME_NOW;
 								return true;
 							}
-
 							var aoeDmg = AI.HERO_INFO.abilities[3];
 							if(AI.ENEMY_TO_KITE && AI.KITE_LOCATION && AI.ENEMY_CLOSE_TO_ME && canCastAbility(aoeDmg)){
 								castToArea(aoeDmg.name, AI.HERO, {x: AI.ENEMY_CLOSE_TO_ME.unit.getX(),y: AI.ENEMY_CLOSE_TO_ME.unit.getY()});
@@ -1434,7 +1433,7 @@ try{
 					scope.order("Mine", idleWorkers, {unit: AI.CLOSEST_GOLD_MINE});
 				}
 			}
-			/********** ABILITIES *************/
+			/********** ABILITIES ******************/
 			function castToArea(orderName, unit, location){
 				var command = scope.getCommandFromCommandName(orderName);
 				var targetField = new Field(location.x, location.y, true);

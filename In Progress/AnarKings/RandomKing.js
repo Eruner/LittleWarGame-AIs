@@ -4,17 +4,15 @@
 
 	Features:
 	- picks random hero
-	- goes to top lane
-	- recruits clerics
-	- tries to heal up when low on hp
-	- uses abilities
+	- goes to lane
 	- hides behind lane mobs/creeps
+	- uses abilities
+	- tries to heal up when low on hp
+	- recruits clerics & golems & 1-2 workers
+	- grabs top Rune
+	- pushes towers and nexus
+	- switches between top and bot lane
 
-	TODO
-	- Runes
-	- Worker(s)
-	- Recruit (supply, buy order)
-	- Switch lines (after loosing tower)
 */
 var scope = scope || null;
 try{
@@ -75,7 +73,6 @@ try{
 					".Herald Hero",
 					"...Eclipse Hero"
 				];
-				//AI.HERO_NAME = "...Eclipse Hero";
 				AI.HERO_NAME = AI.HERO_NAMES[Math.floor(Math.random()*AI.HERO_NAMES.length)];
 				AI.LEVEL = 0;
 				AI.HEALED = true;
@@ -139,24 +136,27 @@ try{
 					top:[{x:32,y:50},{x:52,y:31},{x:82,y:31},{x:118,y:31},{x:148,y:31},{x:168,y:50}],
 					bot:[{x:32,y:50},{x:52,y:69},{x:82,y:69},{x:118,y:69},{x:148,y:69},{x:168,y:50}]
 				};
+				AI.WHERE_TO_PUSH_TO_SWITCH_LANE = (AI.ON_LEFT) ? [121,121,151] : [79,79,49];
+				AI.LAST_LANE_SWITCH = -40;
+				AI.LANE_SWITCH_DURATION = 30;
 			}
 			function loadTeamLeader(){
-                AI.LEADER = AI.me;
-                var allPlayers = game.players;
-                for(var i = 0, max = allPlayers.length; i < max; i++){
+				AI.LEADER = AI.me;
+				var allPlayers = game.players;
+				for(var i = 0, max = allPlayers.length; i < max; i++){
 					var onePlayer = allPlayers[i];
-                    if(onePlayer.team.number != AI.teamNumber){
-                        continue;
-                    }
+					if(onePlayer.team.number != AI.teamNumber){
+						continue;
+					}
 					if(onePlayer.name.indexOf('Computer') < 0){
 						AI.LEADER = onePlayer.number;
-                        break;
+						break;
 					}
-                    if(onePlayer.number < AI.LEADER){
-                        AI.LEADER = onePlayer.number;
-                    }
+					if(onePlayer.number < AI.LEADER){
+						AI.LEADER = onePlayer.number;
+					}
 				}
-                AI.AM_I_TEAM_LEADER = (AI.LEADER == AI.me);
+				AI.AM_I_TEAM_LEADER = (AI.LEADER == AI.me);
 			}
 			function loadHeroes(){
 				AI.HERO_BRAINS = {
@@ -335,7 +335,6 @@ try{
 								AI.HERO_INFO.abilities[0].lastTime = AI.TIME_NOW;
 								return true;
 							}
-
 							var aoeDmg = AI.HERO_INFO.abilities[3];
 							if(AI.ENEMY_TO_KITE && AI.KITE_LOCATION && AI.ENEMY_CLOSE_TO_ME && canCastAbility(aoeDmg)){
 								castToArea(aoeDmg.name, AI.HERO, {x: AI.ENEMY_CLOSE_TO_ME.unit.getX(),y: AI.ENEMY_CLOSE_TO_ME.unit.getY()});
@@ -757,7 +756,6 @@ try{
 			function orient(){
 				AI.STAGE = hasGameStarted();
 				AI.LOW_ON_HP = isLowOnHP();
-				//my units under enemy tower
 				AI.HERO_UNDER_ENEMY_TOWER = isUnderEnemyTower(AI.HERO);
 				AI.ARMY_UNDER_ENEMY_TOWER = areUnderEnemyTower(AI.MY_ARMY);
 				AI.ENEMY_DISTANCES = sortEnemiesByDistance();
@@ -773,6 +771,8 @@ try{
 				AI.VANGUARD_ALLY = findAllyClosestToEnemy();
 				AI.MOBS_AROUND_ME = findMobsAroundMe();
 				AI.CAN_ATTACK_RUNE = runeCloseToHero();
+				AI.NOW_SWITCHING_LANE = switchingInProgress();
+				AI.SHOULD_SWITCH_LANE = shouldSwitchLane();
 			}
 			/******************* ORIENT FUNCTIONS *********************/
 			function hasGameStarted(){
@@ -1016,6 +1016,9 @@ try{
 				if(AI.RUNE_AVAILABLE){
 					return findClosestRunePosition();
 				}
+				if(AI.NOW_SWITCHING_LANE){
+					AI.MAP.MY.NEXUS;
+				}
 				if(AI.AM_I_TEAM_LEADER){
 					return AI.POSITION_BEHIND_MOBS;
 				}
@@ -1040,7 +1043,6 @@ try{
 				return smallestDistance;
 			}
 			function findAllyClosestToEnemy(){
-				//iterate over ally heroes + my hero, iterate over enemy heroes, and find the closes combo.
 				if(!AI.ENEMY_HEROES || !AI.ENEMY_HEROES.length){
 					return;
 				}
@@ -1115,6 +1117,36 @@ try{
 					return closeRunes[0];
 				}
 			}
+			function switchingInProgress(){
+				var switchEnd = AI.LAST_LANE_SWITCH + AI.LANE_SWITCH_DURATION;
+				if(AI.TIME_NOW < switchEnd && AI.TIME_NOW + 1.5 > switchEnd){
+					AI.ON_BOT = !AI.ON_BOT;
+				}
+				return (AI.TIME_NOW < switchEnd);
+			}
+			function shouldSwitchLane(){
+				if(AI.NOW_SWITCHING_LANE){
+					return false;
+				}
+				if(!AI.WHERE_TO_PUSH_TO_SWITCH_LANE.length){
+					return false;
+				}
+				if(!AI.ALLY_MOBS.length){
+					return false;
+				}
+				var relevantMobs = AI.ALLY_MOBS.filter(function(oneMob){
+					return (AI.ON_BOT) ? oneMob.getX() < 50 : oneMob.getX() > 50 ;
+				});
+				if(!relevantMobs.length){
+					return false;
+				}
+				relevantMobs = relevantMobs.sort(function(mobA, mobB){
+					return (AI.ON_LEFT) ? mobB.getX() - mobA.getX() : mobA.getX() - mobB.getX();
+				});
+				var mobX = relevantMobs[0].getX();
+				var goalX = AI.WHERE_TO_PUSH_TO_SWITCH_LANE[0];
+				return (AI.ON_LEFT) ? mobX > goalX : mobX < goalX;
+			}
 			/**********************************************************/
 			/******************* MAKE ACTIONS *************************/
 			/**********************************************************/
@@ -1130,6 +1162,9 @@ try{
                         guardPlayer();
                     }
 					return;
+				}
+				if(AI.SHOULD_SWITCH_LANE){
+					switchLane();
 				}
 				if(AI.STAGE == 'ALL LOADED'){
 					rallyTownCenterToGoldMine();
@@ -1168,7 +1203,6 @@ try{
 						AI.HERO_INFO.abilities[2].lastTime = AI.TIME_NOW;
 					}else{
 						splitAndMoveArmy(AI.MAP.MY.HEAL, [AI.HERO]);
-						//scope.order("Move", [AI.HERO], AI.MAP.MY.HEAL);
 					}
 				}else if(AI.HERO_NAME == ".Herald Hero"){
 					var speed = AI.HERO_INFO.abilities[1];
@@ -1178,7 +1212,6 @@ try{
 						AI.HERO_INFO.abilities[1].lastTime = AI.TIME_NOW;
 					}else{
 						splitAndMoveArmy(AI.MAP.MY.HEAL, [AI.HERO]);
-						//scope.order("Move", [AI.HERO], AI.MAP.MY.HEAL);
 					}
 				}else if(AI.HERO_NAME == "...Eclipse Hero"){
 					var blink = AI.HERO_INFO.abilities[1];
@@ -1195,11 +1228,9 @@ try{
 						AI.HERO_INFO.abilities[3].lastTime = AI.TIME_NOW;
 					}else{
 						splitAndMoveArmy(AI.MAP.MY.HEAL, [AI.HERO]);
-						//scope.order("Move", [AI.HERO], AI.MAP.MY.HEAL);
 					}
 				}else{
 					splitAndMoveArmy(AI.MAP.MY.HEAL, [AI.HERO]);
-					//scope.order("Move", [AI.HERO], AI.MAP.MY.HEAL);
 				}
 			}
 			function moveToGate(){
@@ -1229,11 +1260,14 @@ try{
 					console.log(Pokemon);
 				}
 			}
+			function switchLane(){
+				AI.WHERE_TO_PUSH_TO_SWITCH_LANE.splice(0,1);
+				AI.LAST_LANE_SWITCH = AI.TIME_NOW;
+			}
 			function teamFight(){
 				if(AI.MY_ARMY && AI.MY_ARMY.length){
 					try{
 						attackThroughCheckpoints(AI.MY_ARMY, AI.ENEMY_CLOSE_TO_ME.unit);
-						//scope.order("AMove", AI.MY_ARMY, AI.ENEMY_CLOSE_TO_ME.unit);
 					}catch(Pokemon){
 						console.log('attackThroughCheckpoints failed');
 						console.log(Pokemon);
@@ -1416,6 +1450,7 @@ try{
 				}*/
 				scope.order("Move", [AI.HERO], position);
 			}
+			/********** RECRUIT / MINE *************/
 			function recruit(){
 				if(AI.SUPPLY >= 5 && AI.GOLD >= 175){
 					AI.GOLD -= 175;
@@ -1444,8 +1479,7 @@ try{
 					scope.order("Mine", idleWorkers, {unit: AI.CLOSEST_GOLD_MINE});
 				}
 			}
-			/******** MACRO DECISIONS - WHAT TO DO NEXT ******/
-			/********** ABILITIES *************/
+			/********** ABILITIES ******************/
 			function castToArea(orderName, unit, location){
 				var command = scope.getCommandFromCommandName(orderName);
 				var targetField = new Field(location.x, location.y, true);

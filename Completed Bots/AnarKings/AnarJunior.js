@@ -4,13 +4,14 @@
 
 	Features:
 	- picks random hero
-	- goes to top lane
+	- goes to lane
 	- hides behind lane mobs/creeps
 	- uses abilities
 	- tries to heal up when low on hp
 	- recruits clerics & golems & 1-2 workers
 	- grabs top Rune
 	- pushes towers and nexus
+	- switches between top and bot lane
 
 */
 var scope = scope || null;
@@ -135,6 +136,9 @@ try{
 					top:[{x:32,y:50},{x:52,y:31},{x:82,y:31},{x:118,y:31},{x:148,y:31},{x:168,y:50}],
 					bot:[{x:32,y:50},{x:52,y:69},{x:82,y:69},{x:118,y:69},{x:148,y:69},{x:168,y:50}]
 				};
+				AI.WHERE_TO_PUSH_TO_SWITCH_LANE = (AI.ON_LEFT) ? [121,121,151] : [79,79,49];
+				AI.LAST_LANE_SWITCH = -40;
+				AI.LANE_SWITCH_DURATION = 30;
 			}
 			function loadTeamLeader(){
 				AI.LEADER = AI.me;
@@ -767,6 +771,8 @@ try{
 				AI.VANGUARD_ALLY = findAllyClosestToEnemy();
 				AI.MOBS_AROUND_ME = findMobsAroundMe();
 				AI.CAN_ATTACK_RUNE = runeCloseToHero();
+				AI.NOW_SWITCHING_LANE = switchingInProgress();
+				AI.SHOULD_SWITCH_LANE = shouldSwitchLane();
 			}
 			/******************* ORIENT FUNCTIONS *********************/
 			function hasGameStarted(){
@@ -1010,6 +1016,9 @@ try{
 				if(AI.RUNE_AVAILABLE){
 					return findClosestRunePosition();
 				}
+				if(AI.NOW_SWITCHING_LANE){
+					AI.MAP.MY.NEXUS;
+				}
 				if(AI.AM_I_TEAM_LEADER){
 					return AI.POSITION_BEHIND_MOBS;
 				}
@@ -1108,6 +1117,36 @@ try{
 					return closeRunes[0];
 				}
 			}
+			function switchingInProgress(){
+				var switchEnd = AI.LAST_LANE_SWITCH + AI.LANE_SWITCH_DURATION;
+				if(AI.TIME_NOW < switchEnd && AI.TIME_NOW + 1.5 > switchEnd){
+					AI.ON_BOT = !AI.ON_BOT;
+				}
+				return (AI.TIME_NOW < switchEnd);
+			}
+			function shouldSwitchLane(){
+				if(AI.NOW_SWITCHING_LANE){
+					return false;
+				}
+				if(!AI.WHERE_TO_PUSH_TO_SWITCH_LANE.length){
+					return false;
+				}
+				if(!AI.ALLY_MOBS.length){
+					return false;
+				}
+				var relevantMobs = AI.ALLY_MOBS.filter(function(oneMob){
+					return (AI.ON_BOT) ? oneMob.getX() < 50 : oneMob.getX() > 50 ;
+				});
+				if(!relevantMobs.length){
+					return false;
+				}
+				relevantMobs = relevantMobs.sort(function(mobA, mobB){
+					return (AI.ON_LEFT) ? mobB.getX() - mobA.getX() : mobA.getX() - mobB.getX();
+				});
+				var mobX = relevantMobs[0].getX();
+				var goalX = AI.WHERE_TO_PUSH_TO_SWITCH_LANE[0];
+				return (AI.ON_LEFT) ? mobX > goalX : mobX < goalX;
+			}
 			/**********************************************************/
 			/******************* MAKE ACTIONS *************************/
 			/**********************************************************/
@@ -1123,6 +1162,9 @@ try{
                         guardPlayer();
                     }
 					return;
+				}
+				if(AI.SHOULD_SWITCH_LANE){
+					switchLane();
 				}
 				if(AI.STAGE == 'ALL LOADED'){
 					rallyTownCenterToGoldMine();
@@ -1217,6 +1259,10 @@ try{
 				}catch(Pokemon){
 					console.log(Pokemon);
 				}
+			}
+			function switchLane(){
+				AI.WHERE_TO_PUSH_TO_SWITCH_LANE.splice(0,1);
+				AI.LAST_LANE_SWITCH = AI.TIME_NOW;
 			}
 			function teamFight(){
 				if(AI.MY_ARMY && AI.MY_ARMY.length){

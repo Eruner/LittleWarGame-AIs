@@ -5,16 +5,13 @@
 	Features:
 	- picks random hero
 	- goes to top lane
-	- recruits clerics
-	- tries to heal up when low on hp
-	- uses abilities
 	- hides behind lane mobs/creeps
+	- uses abilities
+	- tries to heal up when low on hp
+	- recruits clerics & golems & 1-2 workers
+	- grabs top Rune
+	- pushes towers and nexus
 
-	TODO
-	- Runes
-	- Worker(s)
-	- Recruit (supply, buy order)
-	- Switch lines (after loosing tower)
 */
 var scope = scope || null;
 try{
@@ -75,7 +72,6 @@ try{
 					".Herald Hero",
 					"...Eclipse Hero"
 				];
-				//AI.HERO_NAME = "...Eclipse Hero";
 				AI.HERO_NAME = AI.HERO_NAMES[Math.floor(Math.random()*AI.HERO_NAMES.length)];
 				AI.LEVEL = 0;
 				AI.HEALED = true;
@@ -757,7 +753,6 @@ try{
 			function orient(){
 				AI.STAGE = hasGameStarted();
 				AI.LOW_ON_HP = isLowOnHP();
-				//my units under enemy tower
 				AI.HERO_UNDER_ENEMY_TOWER = isUnderEnemyTower(AI.HERO);
 				AI.ARMY_UNDER_ENEMY_TOWER = areUnderEnemyTower(AI.MY_ARMY);
 				AI.ENEMY_DISTANCES = sortEnemiesByDistance();
@@ -1040,7 +1035,6 @@ try{
 				return smallestDistance;
 			}
 			function findAllyClosestToEnemy(){
-				//iterate over ally heroes + my hero, iterate over enemy heroes, and find the closes combo.
 				if(!AI.ENEMY_HEROES || !AI.ENEMY_HEROES.length){
 					return;
 				}
@@ -1168,7 +1162,6 @@ try{
 						AI.HERO_INFO.abilities[2].lastTime = AI.TIME_NOW;
 					}else{
 						splitAndMoveArmy(AI.MAP.MY.HEAL, [AI.HERO]);
-						//scope.order("Move", [AI.HERO], AI.MAP.MY.HEAL);
 					}
 				}else if(AI.HERO_NAME == ".Herald Hero"){
 					var speed = AI.HERO_INFO.abilities[1];
@@ -1178,7 +1171,6 @@ try{
 						AI.HERO_INFO.abilities[1].lastTime = AI.TIME_NOW;
 					}else{
 						splitAndMoveArmy(AI.MAP.MY.HEAL, [AI.HERO]);
-						//scope.order("Move", [AI.HERO], AI.MAP.MY.HEAL);
 					}
 				}else if(AI.HERO_NAME == "...Eclipse Hero"){
 					var blink = AI.HERO_INFO.abilities[1];
@@ -1195,11 +1187,9 @@ try{
 						AI.HERO_INFO.abilities[3].lastTime = AI.TIME_NOW;
 					}else{
 						splitAndMoveArmy(AI.MAP.MY.HEAL, [AI.HERO]);
-						//scope.order("Move", [AI.HERO], AI.MAP.MY.HEAL);
 					}
 				}else{
 					splitAndMoveArmy(AI.MAP.MY.HEAL, [AI.HERO]);
-					//scope.order("Move", [AI.HERO], AI.MAP.MY.HEAL);
 				}
 			}
 			function moveToGate(){
@@ -1233,7 +1223,6 @@ try{
 				if(AI.MY_ARMY && AI.MY_ARMY.length){
 					try{
 						attackThroughCheckpoints(AI.MY_ARMY, AI.ENEMY_CLOSE_TO_ME.unit);
-						//scope.order("AMove", AI.MY_ARMY, AI.ENEMY_CLOSE_TO_ME.unit);
 					}catch(Pokemon){
 						console.log('attackThroughCheckpoints failed');
 						console.log(Pokemon);
@@ -1416,6 +1405,7 @@ try{
 				}*/
 				scope.order("Move", [AI.HERO], position);
 			}
+			/********** RECRUIT / MINE *************/
 			function recruit(){
 				if(AI.SUPPLY >= 5 && AI.GOLD >= 175){
 					AI.GOLD -= 175;
@@ -1444,7 +1434,6 @@ try{
 					scope.order("Mine", idleWorkers, {unit: AI.CLOSEST_GOLD_MINE});
 				}
 			}
-			/******** MACRO DECISIONS - WHAT TO DO NEXT ******/
 			/********** ABILITIES *************/
 			function castToArea(orderName, unit, location){
 				var command = scope.getCommandFromCommandName(orderName);

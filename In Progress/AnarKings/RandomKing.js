@@ -1601,7 +1601,7 @@ try{
 					return;
 				}
 				var closeRunes = AI.RUNE.TOTEMS.filter(function(oneRune){
-					var closestHeroToRune = findClosest(AI.ALLY.HEROES, oneRune, unitDistance)
+					var closestHeroToRune = findClosest(AI.ALLY.HEROES, oneRune, unitDistance);
 					return closestHeroToRune.hisDistance < 5;
 				});
 				if(closeRunes && closeRunes.length){

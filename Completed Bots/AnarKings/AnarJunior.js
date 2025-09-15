@@ -145,6 +145,9 @@ try{
 				var allPlayers = game.players;
 				for(var i = 0, max = allPlayers.length; i < max; i++){
 					var onePlayer = allPlayers[i];
+					if(!onePlayer){
+						continue;
+					}
 					if(onePlayer.team.number != AI.teamNumber){
 						continue;
 					}
@@ -1017,7 +1020,7 @@ try{
 					return findClosestRunePosition();
 				}
 				if(AI.NOW_SWITCHING_LANE){
-					AI.MAP.MY.NEXUS;
+					return AI.MAP.MY.NEXUS;
 				}
 				if(AI.AM_I_TEAM_LEADER){
 					return AI.POSITION_BEHIND_MOBS;
@@ -1059,7 +1062,7 @@ try{
 				var vanguard = {
 					tank: undefined,
 					enemy: undefined,
-					distance : 100
+					distance : 200
 				};
 				for(var i = AI.ENEMY_HEROES.length - 1; i >= 0; i--) {
 					var oneEnemy = AI.ENEMY_HEROES[i];
@@ -1073,7 +1076,7 @@ try{
 						}
 					}
 				}
-				vanguard.myDistance = (AI.HERO) ? unitDistance(vanguard.tank, AI.HERO) : 100;
+				vanguard.myDistance = (AI.HERO && vanguard.tank) ? unitDistance(vanguard.tank, AI.HERO) : 200;
 				return vanguard;
 			}
 			function findMobsAroundMe(){

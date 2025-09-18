@@ -17,6 +17,7 @@ var HERO_PICKS = {
 	Player_4 : "Random",//Random, Soldier, Sharpshooter, Mage, Niko, Oath, Druid, Herald, Eclipse
 	Player_5 : "Random",//Random, Soldier, Sharpshooter, Mage, Niko, Oath, Druid, Herald, Eclipse
 	Player_6 : "Random",//Random, Soldier, Sharpshooter, Mage, Niko, Oath, Druid, Herald, Eclipse
+	WARNING : "! ALWAYS SAVE YOUR CHANGES and THEN UPLOAD as Custom AI !"
 };
 var scope = scope || null;
 try{

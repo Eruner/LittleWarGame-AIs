@@ -8,6 +8,16 @@
 	- recruits clerics
 	- tries to heal up when low on hp
 */
+var HERO_PICKS = {
+	TEAM_ON_LEFT:"↓ HERE HARDCODE WHAT HEROES WILL BE PICKED BY AI ↓",
+	Player_1 : "Random",//Random, Soldier, Sharpshooter, Mage, Niko, Oath, Druid, Herald, Eclipse
+	Player_2 : "Random",//Random, Soldier, Sharpshooter, Mage, Niko, Oath, Druid, Herald, Eclipse
+	Player_3 : "Random",//Random, Soldier, Sharpshooter, Mage, Niko, Oath, Druid, Herald, Eclipse
+	TEAM_ON_RIGHT:"↓ HERE HARDCODE WHAT HEROES WILL BE PICKED BY AI ↓",
+	Player_4 : "Random",//Random, Soldier, Sharpshooter, Mage, Niko, Oath, Druid, Herald, Eclipse
+	Player_5 : "Random",//Random, Soldier, Sharpshooter, Mage, Niko, Oath, Druid, Herald, Eclipse
+	Player_6 : "Random",//Random, Soldier, Sharpshooter, Mage, Niko, Oath, Druid, Herald, Eclipse
+};
 var scope = scope || null;
 try{
 	if(!scope){
@@ -66,7 +76,7 @@ try{
 					".Herald Hero", 
 					".Eclipse Hero"
 				];
-				AI.HERO_NAME = AI.HERO_NAMES[Math.floor(Math.random()*AI.HERO_NAMES.length)];
+				pickHero();
 				AI.LEVEL = 0;
 				AI.HEALED = true;
 				AI.HP = {
@@ -80,6 +90,38 @@ try{
 				AI.RUNE_NAME = ".Gold Rune";
 				AI.RUNE_SPAWNER_NAME = ".Gold Rune Spawner";
 				AI.BARRACKS = AI.ON_LEFT ? ".Bar" : ".Crypt";
+			}
+			function pickHero(){
+				var playerNumber = 'Player_' + AI.me;
+				var heroChoice = HERO_PICKS[playerNumber];
+				switch(heroChoice){
+				case 'Soldier':
+					AI.HERO_NAME = ".Soldier Hero";
+					break;
+				case 'Sharpshooter':
+					AI.HERO_NAME = ".Sharpshooter Hero";
+					break;
+				case 'Mage':
+					AI.HERO_NAME = ".Mage Hero";
+					break;
+				case 'Niko':
+					AI.HERO_NAME = ".Niko Hero";
+					break;
+				case 'Oath':
+					AI.HERO_NAME = ".Oathbroken Hero";
+					break;
+				case 'Druid':
+					AI.HERO_NAME = ".Druides Hero";
+					break;
+				case 'Herald':
+					AI.HERO_NAME = ".Herald Hero";
+					break;
+				case 'Eclipse':
+					AI.HERO_NAME = "...Eclipse Hero";
+					break;
+				default:
+					AI.HERO_NAME = AI.HERO_NAMES[Math.floor(Math.random()*AI.HERO_NAMES.length)];
+				}
 			}
 			function loadPositions(){
 				AI.MAP = {};

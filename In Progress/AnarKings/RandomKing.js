@@ -87,8 +87,6 @@ try{
 					"...Eclipse Hero"
 				];
 				pickHero();
-				//AI.HERO_NAME = "...Eclipse Hero";
-				//AI.HERO_NAME = AI.HERO_NAMES[Math.floor(Math.random()*AI.HERO_NAMES.length)];
 				AI.LEVEL = 0;
 				AI.HEALED = true;
 				AI.HP = {
